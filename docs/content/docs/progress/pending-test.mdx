@@ -262,6 +262,7 @@ description: VOZEB PRO 当前版本需要人工或真实环境确认的事项
 - 在干净 Linux 服务器执行 `docker compose config/pull/up`，验证 PostgreSQL 健康检查、`/install` 初始化、管理员创建、静态资源和数据卷重启恢复。
 - 已在 CentOS Stream 9 / Docker 29 环境从当前源码完成 amd64 镜像构建，确认 Next.js standalone、FFmpeg、`/install` 和 PostgreSQL schema 初始化可用；同时修复 HTTP 直连时 CSP 将 CSS/JS 错误升级为 HTTPS的问题。宝塔 PostgreSQL 接入、正式域名 HTTPS 反向代理、管理员创建和数据卷重启恢复仍需继续验收。
 - 中国大陆服务器源码构建默认通过 DaoCloud 拉取 Node/PostgreSQL、通过 npmmirror 安装 pnpm 依赖、通过阿里云镜像安装 Debian 软件包，并允许在 `.env` 覆盖全部镜像地址；仍需在目标远端服务器完成无代理冷缓存构建与启动计时。
+- 默认、源码构建、外部数据库和低内存 Compose 的宿主机端口统一由 `VOZEB_PRO_HOST_PORT` 配置并默认使用 `3002`，容器内 App、健康检查和 Worker 继续使用 `3000`；仍需在目标服务器验证现有 3000 端口被占用时可正常启动，并同步更新反向代理上游端口。
 - 使用 Render Blueprint 验证 PostgreSQL 注入、`VOZEB_PRO_ENCRYPTION_KEY` 生成和首次部署。
 
 ## 生产外部能力

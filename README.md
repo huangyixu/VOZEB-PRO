@@ -449,6 +449,8 @@ docker compose -f docker-compose.local.yml ps
 
 镜像地址都可在 `.env` 中用 `VOZEB_PRO_NODE_IMAGE`、`VOZEB_PRO_POSTGRES_IMAGE`、`VOZEB_PRO_NPM_REGISTRY`、`VOZEB_PRO_DEBIAN_MIRROR` 和 `VOZEB_PRO_DEBIAN_SECURITY_MIRROR` 覆盖。已有部署必须保留原 `.env` 中的数据库密码、加密密钥和维护令牌。
 
+Docker 默认把应用发布到宿主机 `3002` 端口；需要其他端口时修改 `.env` 中的 `VOZEB_PRO_HOST_PORT`。容器内部、健康检查和生成 Worker 始终使用 `3000`，不需要同步修改。
+
 ### 宝塔 PostgreSQL
 
 宝塔已安装 PostgreSQL 时使用：

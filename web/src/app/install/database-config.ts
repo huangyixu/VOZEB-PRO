@@ -76,7 +76,7 @@ function bundledCompose(config: DatabaseConfig, database: string, username: stri
   app:
     image: ghcr.io/csyqlz/vozeb-pro:latest
     ports:
-      - "127.0.0.1:3000:3000"
+      - "127.0.0.1:\${VOZEB_PRO_HOST_PORT:-3002}:3000"
     volumes:
       - vozeb-pro-data:/app/web/.data
     environment:
@@ -103,7 +103,7 @@ function externalCompose(config: DatabaseConfig, databaseUrl: string) {
   app:
     image: ghcr.io/csyqlz/vozeb-pro:latest
     ports:
-      - "127.0.0.1:3000:3000"
+      - "127.0.0.1:\${VOZEB_PRO_HOST_PORT:-3002}:3000"
     volumes:
       - vozeb-pro-data:/app/web/.data
     environment:

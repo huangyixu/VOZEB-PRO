@@ -113,6 +113,10 @@ export function validateComposeContract(source, profile) {
     } else {
         ensure(!app.network_mode && !worker.network_mode, "宝塔专用 host 网络不得泄漏到其他拓扑");
         ensure(!("VOZEB_PRO_TRUSTED_PROXY_HOPS" in appEnvironment), "宝塔专用反向代理默认值不得泄漏到其他拓扑");
+        ensure(
+            app.ports?.some((port) => String(port).includes("${VOZEB_PRO_HOST_PORT:-3002}:3000")),
+            "非 host 网络 Compose 必须通过 VOZEB_PRO_HOST_PORT 映射容器 3000 端口",
+        );
     }
 
     if (violations.length > 0) throw new Error(`${profile.file} Compose 契约失败：\n- ${violations.join("\n- ")}`);

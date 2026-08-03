@@ -7,6 +7,14 @@ description: 使用 Docker Compose、PostgreSQL 和发布镜像部署 VOZEB PRO
 
 主 Compose 会启动 VOZEB PRO 和 PostgreSQL 16。正式部署前先复制并修改 `.env`。
 
+应用容器内部固定监听 `3000`，宿主机默认使用 `3002`，可通过 `.env` 调整：
+
+```dotenv
+VOZEB_PRO_HOST_PORT=3002
+```
+
+Nginx 或宝塔反向代理应连接 `127.0.0.1:3002`。修改宿主机端口不会影响容器健康检查或 generation-worker。
+
 ## 安装
 
 ```bash

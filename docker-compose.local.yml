@@ -1,6 +1,6 @@
 services:
   postgres:
-    image: postgres:16-alpine
+    image: ${VOZEB_PRO_POSTGRES_IMAGE:-docker.m.daocloud.io/library/postgres:16-alpine}
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-vozeb_pro}
       POSTGRES_USER: ${POSTGRES_USER:-vozeb_pro}
@@ -23,6 +23,11 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        VOZEB_PRO_NODE_IMAGE: ${VOZEB_PRO_NODE_IMAGE:-docker.m.daocloud.io/library/node:22-bookworm-slim}
+        VOZEB_PRO_NPM_REGISTRY: ${VOZEB_PRO_NPM_REGISTRY:-https://registry.npmmirror.com}
+        VOZEB_PRO_DEBIAN_MIRROR: ${VOZEB_PRO_DEBIAN_MIRROR:-http://mirrors.aliyun.com/debian}
+        VOZEB_PRO_DEBIAN_SECURITY_MIRROR: ${VOZEB_PRO_DEBIAN_SECURITY_MIRROR:-http://mirrors.aliyun.com/debian-security}
     env_file:
       - .env
     ports:

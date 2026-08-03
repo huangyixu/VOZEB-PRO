@@ -5,7 +5,7 @@ import { parse } from "yaml";
 
 export const composeProfiles = [
     { file: "docker-compose.yml", embeddedPostgres: true, workerOrigin: "http://app:3000" },
-    { file: "docker-compose.local.yml", embeddedPostgres: true, workerOrigin: "http://app:3000" },
+    { file: "docker-compose.local.yml", embeddedPostgres: true, localBuild: true, workerOrigin: "http://app:3000" },
     { file: "docker-compose.baota.yml", embeddedPostgres: false, hostNetwork: true, workerOrigin: "http://127.0.0.1:3000" },
     { file: "docker-compose.external-db.yml", embeddedPostgres: false, workerOrigin: "http://app:3000" },
     { file: "docker-compose.lowmem.yml", embeddedPostgres: false, workerOrigin: "http://app:3000" },
@@ -13,7 +13,7 @@ export const composeProfiles = [
 
 export const docsComposeProfiles = [
     { file: "docs/docker-compose.yml", image: "ghcr.io/csyqlz/vozeb-pro-docs:latest" },
-    { file: "docs/docker-compose.local.yml", build: { context: "..", dockerfile: "docs/Dockerfile" } },
+    { file: "docs/docker-compose.local.yml", build: { context: "..", dockerfile: "docs/Dockerfile" }, localBuild: true },
 ];
 
 const maintenanceToken = "${VOZEB_PRO_MAINTENANCE_TOKEN:?请在 .env 中配置至少 32 位维护令牌}";
@@ -47,6 +47,7 @@ export function validateDocsComposeContract(source, profile) {
     if (docs?.restart !== "unless-stopped") violations.push("docs 必须使用 unless-stopped 重启策略");
     if (profile.image && docs?.image !== profile.image) violations.push("发布文档 Compose 镜像不正确");
     if (profile.build && (docs?.build?.context !== profile.build.context || docs?.build?.dockerfile !== profile.build.dockerfile)) violations.push("本地文档 Compose 构建上下文不正确");
+    if (profile.localBuild) validateChinaBuildSources(docs?.build?.args, violations, "本地文档 Compose");
     if (violations.length > 0) throw new Error(`${profile.file} Compose 契约失败：\n- ${violations.join("\n- ")}`);
     return { file: profile.file, services: ["docs"] };
 }
@@ -100,6 +101,11 @@ export function validateComposeContract(source, profile) {
         ensure(!Object.hasOwn(compose?.volumes || {}, "vozeb-pro-postgres"), "外部数据库拓扑不得声明无用的 PostgreSQL 数据卷");
     }
 
+    if (profile.localBuild) {
+        ensure(String(services.postgres?.image || "").includes("docker.m.daocloud.io/library/postgres:16-alpine"), "本地构建 Compose 未使用国内 PostgreSQL 镜像");
+        validateChinaBuildSources(app.build?.args, violations, "本地构建 Compose");
+    }
+
     if (profile.hostNetwork) {
         ensure(app.network_mode === "host", "宝塔 app 必须使用 host 网络");
         ensure(worker.network_mode === "host", "宝塔 generation-worker 必须使用 host 网络");
@@ -111,6 +117,11 @@ export function validateComposeContract(source, profile) {
 
     if (violations.length > 0) throw new Error(`${profile.file} Compose 契约失败：\n- ${violations.join("\n- ")}`);
     return { file: profile.file, services: Object.keys(services) };
+}
+
+function validateChinaBuildSources(args, violations, label) {
+    if (!String(args?.VOZEB_PRO_NODE_IMAGE || "").includes("docker.m.daocloud.io/library/node:22-bookworm-slim")) violations.push(`${label} 未使用国内 Node 镜像`);
+    if (!String(args?.VOZEB_PRO_NPM_REGISTRY || "").includes("registry.npmmirror.com")) violations.push(`${label} 未使用国内 npm 镜像`);
 }
 
 function sameImage(appImage, workerImage) {

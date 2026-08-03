@@ -1,16 +1,21 @@
-FROM node:22-bookworm-slim AS docs-build
+ARG VOZEB_PRO_NODE_IMAGE=node:22-bookworm-slim
+ARG VOZEB_PRO_NPM_REGISTRY=https://registry.npmjs.org
+
+FROM ${VOZEB_PRO_NODE_IMAGE} AS docs-build
 
 WORKDIR /app
-RUN npm install --global pnpm@11.9.0
+ARG VOZEB_PRO_NPM_REGISTRY
+RUN npm install --global pnpm@11.9.0 --registry=${VOZEB_PRO_NPM_REGISTRY} \
+    && pnpm config set registry ${VOZEB_PRO_NPM_REGISTRY}
 COPY docs/package.json docs/pnpm-lock.yaml docs/pnpm-workspace.yaml ./
 RUN --mount=type=cache,target=/pnpm/store pnpm config set store-dir /pnpm/store \
-    && pnpm install --frozen-lockfile --ignore-scripts
+    && pnpm install --frozen-lockfile --ignore-scripts --registry=${VOZEB_PRO_NPM_REGISTRY}
 COPY docs ./
 COPY CHANGELOG.md /CHANGELOG.md
 RUN pnpm run postinstall
 RUN pnpm run build
 
-FROM node:22-bookworm-slim
+FROM ${VOZEB_PRO_NODE_IMAGE}
 
 WORKDIR /app
 ENV NODE_ENV=production

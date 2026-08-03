@@ -73,10 +73,21 @@ docker compose -f docker-compose.baota.yml up -d
 ## 本地构建镜像
 
 ```bash
-docker compose -f docker-compose.local.yml up -d --build
+docker compose -f docker-compose.local.yml build app
+docker compose -f docker-compose.local.yml up -d --no-build
 ```
 
-构建阶段需要安装依赖并执行 Next.js 生产构建，建议至少 2GB 内存。低内存服务器使用发布镜像。
+本地构建 Compose 默认使用中国大陆可访问的 DaoCloud Node/PostgreSQL 镜像、npmmirror npm 源和阿里云 Debian 源，避免直接访问 Docker Hub、npmjs 和 Debian 官方源。需要使用私有镜像或其他区域镜像时，在 `.env` 覆盖：
+
+```dotenv
+VOZEB_PRO_NODE_IMAGE=docker.m.daocloud.io/library/node:22-bookworm-slim
+VOZEB_PRO_POSTGRES_IMAGE=docker.m.daocloud.io/library/postgres:16-alpine
+VOZEB_PRO_NPM_REGISTRY=https://registry.npmmirror.com
+VOZEB_PRO_DEBIAN_MIRROR=http://mirrors.aliyun.com/debian
+VOZEB_PRO_DEBIAN_SECURITY_MIRROR=http://mirrors.aliyun.com/debian-security
+```
+
+构建阶段需要安装依赖并执行 Next.js 生产构建，建议至少 2GB 内存。低内存服务器使用发布镜像。更新已有部署时不要重新生成 `.env`，必须保留数据库密码、加密密钥和维护令牌。
 
 ## 日志与检查
 

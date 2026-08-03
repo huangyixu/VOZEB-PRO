@@ -1,11 +1,15 @@
-# syntax=docker/dockerfile:1.7
+ARG VOZEB_PRO_NODE_IMAGE=node:22-bookworm-slim
+ARG VOZEB_PRO_NPM_REGISTRY=https://registry.npmjs.org
+ARG VOZEB_PRO_DEBIAN_MIRROR=http://deb.debian.org/debian
+ARG VOZEB_PRO_DEBIAN_SECURITY_MIRROR=http://deb.debian.org/debian-security
 
-FROM node:22-bookworm-slim AS web-build
+FROM ${VOZEB_PRO_NODE_IMAGE} AS web-build
 
 WORKDIR /app/web
 ARG BUILD_NODE_OPTIONS=--max-old-space-size=1536
 ARG NEXT_BUILD_CPUS=1
 ARG PNPM_VERSION=11.7.0
+ARG VOZEB_PRO_NPM_REGISTRY
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV CI=1
 ENV NODE_OPTIONS=${BUILD_NODE_OPTIONS}
@@ -13,10 +17,11 @@ ENV NEXT_BUILD_CPUS=${NEXT_BUILD_CPUS}
 ENV PNPM_HOME=/pnpm
 ENV PATH=${PNPM_HOME}:${PATH}
 
-RUN corepack enable && corepack prepare pnpm@${PNPM_VERSION} --activate
+RUN npm install --global pnpm@${PNPM_VERSION} --registry=${VOZEB_PRO_NPM_REGISTRY} \
+    && pnpm config set registry ${VOZEB_PRO_NPM_REGISTRY}
 
 COPY web/package.json web/pnpm-lock.yaml web/pnpm-workspace.yaml ./
-RUN --mount=type=cache,target=/pnpm/store pnpm install --frozen-lockfile --store-dir=/pnpm/store
+RUN --mount=type=cache,target=/pnpm/store pnpm install --frozen-lockfile --store-dir=/pnpm/store --registry=${VOZEB_PRO_NPM_REGISTRY}
 
 COPY VERSION /app/VERSION
 COPY CHANGELOG.md /app/CHANGELOG.md
@@ -28,9 +33,11 @@ RUN set -eux; \
     test -n "$(find /app/sharp-runtime/node_modules/.pnpm -mindepth 1 -maxdepth 1 -type d -name '@img+sharp-linux-*' -print -quit)"; \
     test -n "$(find /app/sharp-runtime/node_modules/.pnpm -mindepth 1 -maxdepth 1 -type d -name '@img+sharp-libvips-linux-*' -print -quit)"
 
-FROM node:22-bookworm-slim
+FROM ${VOZEB_PRO_NODE_IMAGE}
 
 WORKDIR /app
+ARG VOZEB_PRO_DEBIAN_MIRROR
+ARG VOZEB_PRO_DEBIAN_SECURITY_MIRROR
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV HOSTNAME=0.0.0.0
@@ -40,7 +47,14 @@ ENV VOZEB_PRO_INTERNAL_ORIGIN=http://127.0.0.1:3000
 ENV NODE_OPTIONS=--max-old-space-size=384
 ENV UV_THREADPOOL_SIZE=2
 
-RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates ffmpeg fonts-noto-cjk && rm -rf /var/lib/apt/lists/*
+RUN set -eux; \
+    find /etc/apt -type f \( -name '*.list' -o -name '*.sources' \) \
+        -exec sed -i \
+        -e "s|http://deb.debian.org/debian-security|${VOZEB_PRO_DEBIAN_SECURITY_MIRROR}|g" \
+        -e "s|http://deb.debian.org/debian|${VOZEB_PRO_DEBIAN_MIRROR}|g" {} +; \
+    apt-get update; \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends ca-certificates ffmpeg fonts-noto-cjk; \
+    rm -rf /var/lib/apt/lists/*
 RUN mkdir -p /app/web/scripts
 
 COPY VERSION /app/VERSION

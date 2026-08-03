@@ -439,6 +439,16 @@ docker compose ps
 
 打开 `https://你的域名/install`，依次检查数据库、初始化表结构并创建首个管理员。
 
+需要在中国大陆服务器直接从源码构建时，使用本地构建 Compose。它默认通过 DaoCloud 拉取 Node/PostgreSQL，通过 npmmirror 安装 pnpm 依赖，并通过阿里云镜像安装 Debian 软件包：
+
+```bash
+docker compose -f docker-compose.local.yml build app
+docker compose -f docker-compose.local.yml up -d --no-build
+docker compose -f docker-compose.local.yml ps
+```
+
+镜像地址都可在 `.env` 中用 `VOZEB_PRO_NODE_IMAGE`、`VOZEB_PRO_POSTGRES_IMAGE`、`VOZEB_PRO_NPM_REGISTRY`、`VOZEB_PRO_DEBIAN_MIRROR` 和 `VOZEB_PRO_DEBIAN_SECURITY_MIRROR` 覆盖。已有部署必须保留原 `.env` 中的数据库密码、加密密钥和维护令牌。
+
 ### 宝塔 PostgreSQL
 
 宝塔已安装 PostgreSQL 时使用：

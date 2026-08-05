@@ -22,6 +22,7 @@ import {
 } from "@/services/api/creative";
 import { getMaterializedCreativeProject, materializeCreativeProjectHandoff, type MaterializedCreativeProject } from "@/services/creative-project-handoff";
 import { agentRequirementAcknowledgement } from "@/lib/agent-requirement-acknowledgement";
+import { isGenerationCapacityError } from "@/services/api/generation-task-request-error";
 
 type PendingCreateSubmission = {
     clientRequestId: string;
@@ -35,12 +36,15 @@ type PendingCreateSubmission = {
     temporaryAssistantId: string;
 };
 
+const CAPACITY_RETRY_DELAY_MS = 5000;
+
 export function useCreateAgent() {
     const streamRef = useRef<(() => void) | null>(null);
     const conversationGenerationRef = useRef(0);
     const activeConversationRef = useRef<string | undefined>(undefined);
     const submittingRef = useRef(false);
     const failedSubmissionsRef = useRef(new Map<string, PendingCreateSubmission>());
+    const capacityRetryRef = useRef<{ timer: number; resolve: () => void } | undefined>(undefined);
     const refreshRequestRef = useRef(0);
     const [conversations, setConversations] = useState<CreativeConversation[]>([]);
     const [messages, setMessages] = useState<CreativeMessage[]>([]);
@@ -66,6 +70,27 @@ export function useCreateAgent() {
         streamRef.current?.();
         streamRef.current = null;
     }, []);
+
+    const clearCapacityRetry = useCallback(() => {
+        const retry = capacityRetryRef.current;
+        if (!retry) return;
+        window.clearTimeout(retry.timer);
+        capacityRetryRef.current = undefined;
+        retry.resolve();
+    }, []);
+
+    const waitForCapacityRetry = useCallback(
+        () =>
+            new Promise<void>((resolve) => {
+                clearCapacityRetry();
+                const timer = window.setTimeout(() => {
+                    capacityRetryRef.current = undefined;
+                    resolve();
+                }, CAPACITY_RETRY_DELAY_MS);
+                capacityRetryRef.current = { timer, resolve };
+            }),
+        [clearCapacityRetry],
+    );
 
     const refreshConversations = useCallback(async () => {
         setHistoryLoading(true);
@@ -145,10 +170,15 @@ export function useCreateAgent() {
 
     useEffect(() => {
         void refreshConversations();
-        return stopWatching;
-    }, [refreshConversations, stopWatching]);
+        return () => {
+            conversationGenerationRef.current += 1;
+            clearCapacityRetry();
+            stopWatching();
+        };
+    }, [clearCapacityRetry, refreshConversations, stopWatching]);
 
     const newConversation = useCallback(() => {
+        clearCapacityRetry();
         stopWatching();
         conversationGenerationRef.current += 1;
         activeConversationRef.current = undefined;
@@ -163,10 +193,11 @@ export function useCreateAgent() {
         setAssets([]);
         setSelectedAssetIds([]);
         setSending(false);
-    }, [stopWatching]);
+    }, [clearCapacityRetry, stopWatching]);
 
     const openConversation = useCallback(
         async (id: string) => {
+            clearCapacityRetry();
             stopWatching();
             const generation = ++conversationGenerationRef.current;
             activeConversationRef.current = id;
@@ -188,7 +219,7 @@ export function useCreateAgent() {
                 if (generation === conversationGenerationRef.current && activeConversationRef.current === id) setConversationLoading(false);
             }
         },
-        [newConversation, refreshConversation, stopWatching],
+        [clearCapacityRetry, newConversation, refreshConversation, stopWatching],
     );
 
     const updateAssistant = useCallback((id: string, content?: string, status: CreativeMessage["status"] = "running") => {
@@ -298,44 +329,53 @@ export function useCreateAgent() {
 
     const executeSubmission = useCallback(
         async (snapshot: PendingCreateSubmission) => {
-            try {
-                const created = await createCreativeAgentRun({
-                    clientRequestId: snapshot.clientRequestId,
-                    surface: "chat",
-                    conversationId: snapshot.conversationId,
-                    prompt: snapshot.content,
-                    assetIds: snapshot.assetIds,
-                    skillIds: snapshot.skillIds,
-                    modelIds: snapshot.modelIds,
-                });
-                const run = created.run;
-                failedSubmissionsRef.current.delete(snapshot.temporaryAssistantId);
-                if (snapshot.generation !== conversationGenerationRef.current) {
-                    submittingRef.current = false;
+            while (snapshot.generation === conversationGenerationRef.current) {
+                try {
+                    const created = await createCreativeAgentRun({
+                        clientRequestId: snapshot.clientRequestId,
+                        surface: "chat",
+                        conversationId: snapshot.conversationId,
+                        prompt: snapshot.content,
+                        assetIds: snapshot.assetIds,
+                        skillIds: snapshot.skillIds,
+                        modelIds: snapshot.modelIds,
+                    });
+                    const run = created.run;
+                    failedSubmissionsRef.current.delete(snapshot.temporaryAssistantId);
+                    if (snapshot.generation !== conversationGenerationRef.current) {
+                        submittingRef.current = false;
+                        return true;
+                    }
+                    activeConversationRef.current = run.conversationId;
+                    setConversationId(run.conversationId);
+                    setActiveRunId(run.id);
+                    setMessages((current) =>
+                        current.map((item) => {
+                            if (item.id === snapshot.temporaryUserId) return { ...item, id: run.inputMessageId, conversationId: run.conversationId, runId: run.id };
+                            if (item.id === snapshot.temporaryAssistantId) return { ...item, id: run.assistantMessageId, conversationId: run.conversationId, runId: run.id };
+                            return item;
+                        }),
+                    );
+                    watchRun(run, run.assistantMessageId, snapshot.generation);
+                    void refreshConversations();
                     return true;
+                } catch (error) {
+                    if (isGenerationCapacityError(error) && snapshot.generation === conversationGenerationRef.current) {
+                        updateAssistant(snapshot.temporaryAssistantId, "当前创作任务较多，正在排队，空闲后将自动继续", "running");
+                        await waitForCapacityRetry();
+                        continue;
+                    }
+                    failedSubmissionsRef.current.set(snapshot.temporaryAssistantId, snapshot);
+                    updateAssistant(snapshot.temporaryAssistantId, error instanceof Error ? error.message : "创作请求失败", "failed");
+                    setSending(false);
+                    submittingRef.current = false;
+                    return false;
                 }
-                activeConversationRef.current = run.conversationId;
-                setConversationId(run.conversationId);
-                setActiveRunId(run.id);
-                setMessages((current) =>
-                    current.map((item) => {
-                        if (item.id === snapshot.temporaryUserId) return { ...item, id: run.inputMessageId, conversationId: run.conversationId, runId: run.id };
-                        if (item.id === snapshot.temporaryAssistantId) return { ...item, id: run.assistantMessageId, conversationId: run.conversationId, runId: run.id };
-                        return item;
-                    }),
-                );
-                watchRun(run, run.assistantMessageId, snapshot.generation);
-                void refreshConversations();
-                return true;
-            } catch (error) {
-                failedSubmissionsRef.current.set(snapshot.temporaryAssistantId, snapshot);
-                updateAssistant(snapshot.temporaryAssistantId, error instanceof Error ? error.message : "创作请求失败", "failed");
-                setSending(false);
-                submittingRef.current = false;
-                return false;
             }
+            submittingRef.current = false;
+            return false;
         },
-        [refreshConversations, updateAssistant, watchRun],
+        [refreshConversations, updateAssistant, waitForCapacityRetry, watchRun],
     );
 
     const submit = useCallback(

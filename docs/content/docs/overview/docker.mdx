@@ -128,13 +128,34 @@ NEXT_PUBLIC_SITE_URL=https://vozeb-pro.example.com
 
 ## 更新
 
+使用发布镜像部署时：
+
 ```bash
-git pull
+git pull --ff-only
 docker compose pull
 docker compose up -d
+docker compose ps
 ```
 
-不要执行 `docker compose down -v`。更新前备份 PostgreSQL 和 `vozeb-pro-data`。
+使用 `docker-compose.local.yml` 从源码构建部署时：
+
+```bash
+git pull --ff-only origin dev
+docker compose -f docker-compose.local.yml build app
+docker compose -f docker-compose.local.yml up -d --no-build
+docker compose -f docker-compose.local.yml ps
+```
+
+如果部署的不是 `dev` 分支，请把第一条命令中的 `dev` 换成实际分支名。`build app` 会复用 Docker BuildKit 缓存，但缓存按文件内容判断：源码变化后，复制源码及其后的 TypeScript 检查和 Next.js 生产构建层会自动重新执行；依赖清单和锁文件没有变化时，依赖安装层仍会复用。因此正常更新无需每次禁用缓存，也不会因为复用缓存而继续运行旧应用代码。
+
+构建成功后仍需执行 `up -d --no-build`，它会用刚构建的镜像重新创建 App 和 Worker 容器。只有怀疑缓存损坏或构建结果异常时才执行：
+
+```bash
+docker compose -f docker-compose.local.yml build --no-cache app
+docker compose -f docker-compose.local.yml up -d --no-build
+```
+
+更新时不要覆盖已有 `.env`，尤其要保留 `POSTGRES_PASSWORD`、`VOZEB_PRO_ENCRYPTION_KEY` 和 `VOZEB_PRO_MAINTENANCE_TOKEN`。不要执行 `docker compose down -v`，否则会删除数据库和媒体数据卷；更新前应备份 PostgreSQL 和 `vozeb-pro-data`。
 
 ## 数据卷
 

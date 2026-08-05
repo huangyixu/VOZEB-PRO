@@ -1,4 +1,5 @@
 import { isCreativeProjectHandoff, type CreativeAsset, type CreativeConversation, type CreativeConversationSource, type CreativeMessage, type CreativeProjectHandoff, type CreativeRunRequest } from "@/lib/creative-runtime-contract";
+import { GenerationTaskRequestError } from "@/services/api/generation-task-request-error";
 import type { CreativeWorkbenchSessionDetail, CreativeWorkbenchSessionSummary, WorkbenchWorkspace } from "@/lib/workbench-session-contract";
 import { refreshUserPointsIfSystem } from "@/services/api/points";
 
@@ -198,7 +199,7 @@ export function watchCreativeAgentRun(runId: string, handlers: CreativeRunHandle
 async function request<T>(url: string, init?: RequestInit) {
     const response = await fetch(url, { ...init, cache: "no-store" });
     const payload = (await response.json().catch(() => null)) as ApiResponse<T> | null;
-    if (!response.ok || !payload || payload.code !== 0) throw new Error(payload?.msg || "请求失败");
+    if (!response.ok || !payload || payload.code !== 0) throw new GenerationTaskRequestError(payload?.msg || "请求失败", response.status);
     return payload.data;
 }
 

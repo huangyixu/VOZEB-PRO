@@ -449,6 +449,17 @@ docker compose -f docker-compose.local.yml ps
 
 镜像地址都可在 `.env` 中用 `VOZEB_PRO_NODE_IMAGE`、`VOZEB_PRO_POSTGRES_IMAGE`、`VOZEB_PRO_NPM_REGISTRY`、`VOZEB_PRO_DEBIAN_MIRROR` 和 `VOZEB_PRO_DEBIAN_SECURITY_MIRROR` 覆盖。已有部署必须保留原 `.env` 中的数据库密码、加密密钥和维护令牌。
 
+以后拉取新代码并更新源码构建部署时执行：
+
+```bash
+git pull --ff-only origin dev
+docker compose -f docker-compose.local.yml build app
+docker compose -f docker-compose.local.yml up -d --no-build
+docker compose -f docker-compose.local.yml ps
+```
+
+Docker 只会复用内容未变化的构建层。应用源码变化后，`COPY` 源码及其后的 Next.js 生产构建层会自动失效并重新执行，不会继续使用旧应用代码；依赖文件未变化时仍可复用耗时的依赖安装层。构建完成后必须执行上面的 `up -d --no-build`，让运行中的容器切换到新镜像。只有怀疑缓存异常时才使用 `docker compose -f docker-compose.local.yml build --no-cache app`。
+
 Docker 默认把应用发布到宿主机 `3002` 端口；需要其他端口时修改 `.env` 中的 `VOZEB_PRO_HOST_PORT`。容器内部、健康检查和生成 Worker 始终使用 `3000`，不需要同步修改。
 
 ### 宝塔 PostgreSQL

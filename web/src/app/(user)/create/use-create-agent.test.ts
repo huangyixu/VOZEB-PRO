@@ -13,6 +13,9 @@ describe("useCreateAgent submission retry", () => {
         const retrySource = source.slice(retryStart, source.indexOf("const cancel", retryStart));
 
         expect(executeSource).toContain("clientRequestId: snapshot.clientRequestId");
+        expect(executeSource).toContain("isGenerationCapacityError(error)");
+        expect(executeSource).toContain("await waitForCapacityRetry()");
+        expect(executeSource).toContain("正在排队，空闲后将自动继续");
         expect(submitSource).toContain("metadata: { assetIds }");
         expect(submitSource).toContain("setSelectedAssetIds((current) => current.filter");
         expect(retrySource).toContain("failedSubmissionsRef.current.get(assistantMessageId)");

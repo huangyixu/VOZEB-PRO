@@ -4,8 +4,9 @@ const mocks = vi.hoisted(() => ({ refreshUserPointsIfSystem: vi.fn(async () => u
 
 vi.mock("@/services/api/points", () => ({ refreshUserPointsIfSystem: mocks.refreshUserPointsIfSystem }));
 
-import { controlCreativeAgentRun, listCreativeConversationPage, watchCreativeAgentRun } from "./creative";
+import { controlCreativeAgentRun, createCreativeAgentRun, listCreativeConversationPage, watchCreativeAgentRun } from "./creative";
 import type { CreativeProjectHandoff } from "@/lib/creative-runtime-contract";
+import { GenerationTaskRequestError } from "./generation-task-request-error";
 
 class FakeEventSource extends EventTarget {
     static instance: FakeEventSource;
@@ -110,5 +111,16 @@ describe("创作会话来源", () => {
 
         await expect(controlCreativeAgentRun("run-one", "retry")).resolves.toEqual({ run });
         expect(fetchMock).toHaveBeenCalledWith("/api/agent/runs/run-one/retry", expect.objectContaining({ method: "POST", cache: "no-store" }));
+    });
+
+    it("preserves the response status when Agent capacity is exhausted", async () => {
+        vi.stubGlobal(
+            "fetch",
+            vi.fn(async () => Response.json({ code: 429, data: null, msg: "当前最多同时运行 2 个 Agent 任务" }, { status: 429 })),
+        );
+
+        await expect(createCreativeAgentRun({ clientRequestId: "request-one", surface: "chat", prompt: "生成一张图片", assetIds: [], skillIds: [], modelIds: [] })).rejects.toEqual(
+            expect.objectContaining<Partial<GenerationTaskRequestError>>({ name: "GenerationTaskRequestError", status: 429 }),
+        );
     });
 });

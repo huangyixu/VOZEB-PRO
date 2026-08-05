@@ -1,0 +1,81 @@
+workflow:
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH == "dev"'
+    - when: never
+
+stages:
+  - deploy
+
+variables:
+  GIT_STRATEGY: fetch
+  COMPOSE_PROJECT_NAME: vozeb-pro
+  SOURCE_DIR: /home/workspace/VOZEB-PRO
+  DEPLOY_DIR: /opt/1panel/apps/vozeb-pro
+  DOCKER_BUILDKIT: "1"
+
+deploy_dev:
+  stage: deploy
+
+  tags:
+    - prod-docker
+
+  resource_group: vozeb-pro-production
+
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH == "dev"'
+      when: manual
+      allow_failure: false
+    - when: never
+
+  before_script:
+    - docker version
+    - docker compose version
+    - rsync --version
+    - test -d "$SOURCE_DIR"
+    - test -w "$SOURCE_DIR"
+    - test -d "$DEPLOY_DIR"
+    - test -w "$DEPLOY_DIR"
+    - test -r "$DEPLOY_DIR/.env"
+
+  script:
+    - >
+      rsync -a --delete
+      --exclude='.git/'
+      --exclude='.env'
+      --exclude='.data/'
+      "$CI_PROJECT_DIR/"
+      "$SOURCE_DIR/"
+    - install -m 600 "$DEPLOY_DIR/.env" "$SOURCE_DIR/.env"
+    - >
+      docker compose
+      -p "$COMPOSE_PROJECT_NAME"
+      -f "$SOURCE_DIR/docker-compose.local.yml"
+      --env-file "$DEPLOY_DIR/.env"
+      config --quiet
+    - >
+      docker compose
+      -p "$COMPOSE_PROJECT_NAME"
+      -f "$SOURCE_DIR/docker-compose.local.yml"
+      --env-file "$DEPLOY_DIR/.env"
+      build app
+    - docker image inspect vozeb-pro:local >/dev/null
+    - >
+      docker compose
+      -p "$COMPOSE_PROJECT_NAME"
+      -f "$SOURCE_DIR/docker-compose.local.yml"
+      --env-file "$DEPLOY_DIR/.env"
+      up -d
+      --no-build
+      --pull never
+      --remove-orphans
+      --wait
+      --wait-timeout 300
+    - >
+      docker compose
+      -p "$COMPOSE_PROJECT_NAME"
+      -f "$SOURCE_DIR/docker-compose.local.yml"
+      --env-file "$DEPLOY_DIR/.env"
+      ps
+
+  environment:
+    name: production

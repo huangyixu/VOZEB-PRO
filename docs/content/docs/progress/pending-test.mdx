@@ -259,6 +259,7 @@ description: VOZEB PRO 当前版本需要人工或真实环境确认的事项
 
 ## 部署与镜像
 
+- 新增 GitLab CI 部署流水线：仅 `dev` 分支 push 创建阻塞式手动 `deploy_dev` 作业，使用 `prod-docker` Runner 将提交同步到持久源码目录，通过国内源构建 `vozeb-pro:local`，再更新 App/Worker 并等待健康检查；配置未变化的 PostgreSQL 不会被强制重建。仍需在目标 GitLab 项目确认 Runner 标签、服务器目录权限、部署 `.env` 和首次手动执行结果。
 - README 与文档站已补齐项目目录职责、标准请求、Agent/Skill/模型、媒体存储、积分、宝塔/Compose 部署和排障流程图，并加入用户端、公开页和管理后台 42 张脱敏 WebP 功能截图；仍需在 GitHub 首发页面复核 Mermaid、图片链接和移动端文档布局。
 - GitHub Actions 需要完成应用与文档镜像的 amd64、arm64 构建、GHCR 推送和多架构 manifest 合并。
 - 在干净 Linux 服务器执行 `docker compose config/pull/up`，验证 PostgreSQL 健康检查、`/install` 初始化、管理员创建、静态资源和数据卷重启恢复。

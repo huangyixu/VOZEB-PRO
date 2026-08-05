@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- [部署] 新增仅由 `dev` 分支 push 创建的 GitLab CI 手动部署作业，复用服务器 Docker 构建缓存并在更新 App 与 Worker 后等待容器健康。
 - [部署] Docker 宿主机端口改为可通过 `VOZEB_PRO_HOST_PORT` 配置并默认使用 `3002`，容器内部服务继续固定使用 `3000`，避免与服务器现有应用冲突。
 - [部署] 源码构建 Compose 默认通过国内可访问的 Docker、npm/pnpm 和 Debian 镜像下载 Node、PostgreSQL、前端依赖及系统包，所有镜像地址均可由 `.env` 覆盖。
 - [修复] 生产镜像显式携带当前 CPU 架构对应的 Sharp 与 libvips 原生运行库，并在镜像构建阶段实际加载 Sharp；避免 Linux 容器中的生成运维、媒体处理和生成 Worker 因缺少动态库返回 500。

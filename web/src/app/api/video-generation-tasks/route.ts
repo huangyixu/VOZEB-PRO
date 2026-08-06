@@ -246,7 +246,7 @@ export async function createUpstream(
     const newApiTextToVideoJson = channel.channelProtocol === "newapi" && multipartTemplate && images.length === 0;
     const multipart = multipartTemplate && !newApiTextToVideoJson;
     const jsonTemplate = newApiTextToVideoJson ? undefined : channel.advancedConfig?.requestTemplate;
-    const jsonDefaults = newApiTextToVideoJson ? { model: channel.model, prompt, seconds: values.seconds, size: `${dimensions.width}x${dimensions.height}` } : defaults;
+    const jsonDefaults = newApiTextToVideoJson ? { model: channel.model, prompt, seconds: String(values.seconds), size: `${dimensions.width}x${dimensions.height}` } : defaults;
     const payload = multipart
         ? undefined
         : channel.advancedConfig?.protocol === "seedance-special"

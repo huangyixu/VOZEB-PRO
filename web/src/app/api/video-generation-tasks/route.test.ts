@@ -327,7 +327,7 @@ describe("video generation candidate failover", () => {
 
         expect(response.status).toBe(200);
         expect(new Headers(init.headers).get("content-type")).toBe("application/json");
-        expect(JSON.parse(String(init.body))).toEqual({ model: "video-one", prompt: "A test video", seconds: 5, size: "1280x720" });
+        expect(JSON.parse(String(init.body))).toEqual({ model: "video-one", prompt: "A test video", seconds: "5", size: "1280x720" });
     });
 
     it("keeps New API image-to-video requests as multipart form data", async () => {

@@ -306,7 +306,11 @@ export function getGlobalAiOpcPreset(value: unknown): GlobalAiOpcPreset | undefi
 
 export function getGlobalAiOpcPresetForModel(model: unknown, candidates: readonly GlobalAiOpcPreset[] = presets): GlobalAiOpcPreset | undefined {
     const modelKey = normalizeGlobalAiOpcModel(model);
-    return modelKey ? candidates.find((preset) => preset.modelExamples.some((example) => normalizeGlobalAiOpcModel(example) === modelKey)) : undefined;
+    if (!modelKey) return undefined;
+    const exact = candidates.find((preset) => preset.modelExamples.some((example) => normalizeGlobalAiOpcModel(example) === modelKey));
+    if (exact) return exact;
+    const happyHorseMode = happyHorseRequestMode(modelKey);
+    return happyHorseMode ? candidates.find((preset) => preset.requestMode === happyHorseMode) : undefined;
 }
 
 export function resolveGlobalAiOpcPresets(config?: GlobalAiOpcConfig): GlobalAiOpcPreset[] {
@@ -487,6 +491,11 @@ function globalAiOpcFirstFrameContent(input: GlobalAiOpcVideoRequest) {
 
 function upperResolution(value: string) {
     return value.toUpperCase();
+}
+
+function happyHorseRequestMode(model: string): GlobalAiOpcVideoRequestMode | undefined {
+    const mode = model.match(/^happyhorse-\d+(?:\.\d+)*-(t2v|i2v|r2v|video-edit)$/)?.[1];
+    return mode ? (`happyhorse-${mode === "video-edit" ? "edit" : mode}` as GlobalAiOpcVideoRequestMode) : undefined;
 }
 
 function normalizeGlobalAiOpcPath(value: unknown) {

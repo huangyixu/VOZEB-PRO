@@ -22,6 +22,9 @@ describe("GlobalAiOpc catalog", () => {
         expect(selection.baseUrl).toBe("");
         expect(resolveGlobalAiOpcPreset(config, "gpt-4.1")).toMatchObject({ id: "text-openai-chat", createPath: "/chat/completions" });
         expect(resolveGlobalAiOpcPreset(config, "happyhorse-1.0-i2v")).toMatchObject({ id: "video-happyhorse-i2v", createPath: "/happyhorse-i2v/videos" });
+        expect(resolveGlobalAiOpcPreset(config, "happyhorse-1.1-t2v")).toMatchObject({ id: "video-happyhorse-t2v", createPath: "/happyhorse-t2v/videos" });
+        expect(resolveGlobalAiOpcPreset(config, "happyhorse-1.1-i2v")).toMatchObject({ id: "video-happyhorse-i2v", createPath: "/happyhorse-i2v/videos" });
+        expect(resolveGlobalAiOpcPreset(config, "happyhorse-1.1-r2v")).toMatchObject({ id: "video-happyhorse-r2v", createPath: "/happyhorse-r2v/videos" });
         expect(resolveGlobalAiOpcPreset(config, "videos_stable_fast")).toMatchObject({ id: "video-videos", createPath: "/videos/videos" });
     });
 

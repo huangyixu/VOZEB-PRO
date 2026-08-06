@@ -330,6 +330,19 @@ describe("video generation candidate failover", () => {
         expect(JSON.parse(String(init.body))).toEqual({ model: "video-one", prompt: "A test video", seconds: "5", size: "1280x720" });
     });
 
+    it("uses the Happy Horse request contract for New API text-to-video models", async () => {
+        mocks.getAuthSettings.mockResolvedValue(newApiVideoSettings("newapi", "happyhorse-1.1-t2v"));
+        mocks.fetchInternalApi.mockResolvedValue(json({ id: "upstream-happyhorse", status: "queued" }));
+
+        const response = await POST(request({ model: "video", videoSeconds: "5", size: "16:9", vquality: "720" }));
+        const [url, init] = mocks.fetchInternalApi.mock.calls[0] as [string, RequestInit];
+
+        expect(response.status).toBe(200);
+        expect(url).toContain("/api/ai/system/one/videos");
+        expect(new Headers(init.headers).get("content-type")).toBe("application/json");
+        expect(JSON.parse(String(init.body))).toEqual({ model: "happyhorse-1.1-t2v", prompt: "A test video", duration: 5, ratio: "16:9", resolution: "720P", seed: 0 });
+    });
+
     it("keeps New API image-to-video requests as multipart form data", async () => {
         mocks.getAuthSettings.mockResolvedValue(newApiVideoSettings());
         mocks.fetchInternalApi.mockResolvedValue(json({ id: "upstream-new-api-image", status: "queued" }));
@@ -632,16 +645,17 @@ function qingyanSettings() {
     };
 }
 
-function newApiVideoSettings(protocol: "newapi" | "openai" = "newapi") {
+function newApiVideoSettings(protocol: "newapi" | "openai" = "newapi", upstreamModel = "video-one") {
     return {
         ...settings,
         systemChannels: [
             {
                 ...channels[0],
+                models: [upstreamModel],
                 advancedConfig: {
                     protocol,
                     modelConfigs: {
-                        "video-one": {
+                        [upstreamModel]: {
                             capability: "video",
                             protocol: "openai",
                             createPath: "/videos",
@@ -656,7 +670,7 @@ function newApiVideoSettings(protocol: "newapi" | "openai" = "newapi") {
                 },
             },
         ],
-        logicalModels: [{ ...settings.logicalModels[0], bindings: [settings.logicalModels[0].bindings[0]] }],
+        logicalModels: [{ ...settings.logicalModels[0], bindings: [{ ...settings.logicalModels[0].bindings[0], upstreamModel }] }],
     };
 }
 

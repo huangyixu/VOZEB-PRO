@@ -245,12 +245,12 @@ export async function createUpstream(
     const multipartTemplate = channel.advancedConfig?.requestTemplate?.trim().toLowerCase().startsWith("multipart/form-data") === true;
     const newApiTextToVideoJson = channel.channelProtocol === "newapi" && multipartTemplate && images.length === 0;
     const newApiModelPreset = channel.channelProtocol === "newapi" && multipartTemplate ? getGlobalAiOpcPresetForModel(channel.model) : undefined;
-    const newApiHappyHorsePreset = newApiModelPreset?.requestMode?.startsWith("happyhorse-") ? newApiModelPreset : undefined;
-    const newApiJson = Boolean(newApiHappyHorsePreset) || newApiTextToVideoJson;
+    const newApiHappyHorseTextPreset = newApiModelPreset?.requestMode === "happyhorse-t2v" ? newApiModelPreset : undefined;
+    const newApiJson = Boolean(newApiHappyHorseTextPreset) || newApiTextToVideoJson;
     const multipart = multipartTemplate && !newApiJson;
     const jsonTemplate = newApiJson ? undefined : channel.advancedConfig?.requestTemplate;
-    const jsonDefaults = newApiHappyHorsePreset
-        ? buildGlobalAiOpcVideoRequest(newApiHappyHorsePreset, {
+    const jsonDefaults = newApiHappyHorseTextPreset
+        ? buildGlobalAiOpcVideoRequest(newApiHappyHorseTextPreset, {
               model: channel.model,
               prompt,
               duration: values.duration as number,

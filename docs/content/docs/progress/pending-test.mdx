@@ -11,7 +11,7 @@ description: VOZEB PRO 当前版本需要人工或真实环境确认的事项
 
 ## 本轮修复待验收
 
-- New API 渠道调用 OpenAI 视频协议时会保留顶层渠道身份：通用无参考图文生视频使用包含 `model`、`prompt`、字符串 `seconds` 和像素 `size` 的 JSON；Happy Horse 文生视频按专用契约发送 `duration`、`ratio`、`resolution` 和 `seed`，图生视频则发送 `first_image`、`duration`、`resolution` 和 `seed`，其中清晰度为 `720P/1080P`。带参考图的其他通用图生视频和官方 OpenAI Videos 仍使用 multipart 文件上传。专项回归已覆盖通用 New API、Happy Horse 1.1 文生/图生视频、参考图、官方 OpenAI 和模型级协议覆盖；仍需更新生产容器后用现有 New API 配置完成真实调用。
+- New API 渠道调用 OpenAI 视频协议时会保留顶层渠道身份：通用无参考图文生视频使用包含 `model`、`prompt`、字符串 `seconds` 和像素 `size` 的 JSON；Happy Horse 文生视频按专用契约发送 `duration`、`ratio`、`resolution` 和 `seed`，其中清晰度为 `720P/1080P`。Happy Horse 图生视频与其他带参考图的 New API 模型遵循 `/videos` 的 multipart 契约，把唯一参考图上传为 `input_reference` 文件；官方 OpenAI Videos 继续使用相同 multipart 文件上传。专项回归已覆盖通用 New API、Happy Horse 1.1 文生/图生视频、参考图、官方 OpenAI 和模型级协议覆盖；仍需更新生产容器后用现有 New API 配置完成真实调用。
 
 - v0.0.3 发布镜像在一台 Linux x64 服务器出现 `libvips-cpp.so.8.18.3` 缺失，导致生成运维摘要、资源统计和 Worker 同时返回 500；这与数据库参数无关。生产 Dockerfile 已改为从 pnpm 依赖树实体化当前 CPU 架构对应的 Sharp/libvips 原生包，并在最终镜像构建阶段直接加载 Sharp，缺库会立即阻断 amd64 或 arm64 镜像发布。部署契约测试已覆盖原生包收集、复制和运行时检查；仍需等待新镜像构建后在问题服务器重新拉取，确认两个运维接口、Worker 心跳和图片 WebP 预览恢复。
 

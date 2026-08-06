@@ -315,6 +315,7 @@ describe("video generation candidate failover", () => {
         expect(body.get("model")).toBe("video-one");
         expect(body.get("seconds")).toBe("5");
         expect(body.get("size")).toBe("1280x720");
+        expect(body.getAll("input_reference")).toHaveLength(1);
         expect(body.get("input_reference")).toBeInstanceOf(File);
     });
 
@@ -343,7 +344,7 @@ describe("video generation candidate failover", () => {
         expect(JSON.parse(String(init.body))).toEqual({ model: "happyhorse-1.1-t2v", prompt: "A test video", duration: 5, ratio: "16:9", resolution: "720P", seed: 0 });
     });
 
-    it("uses the Happy Horse request contract for New API image-to-video models", async () => {
+    it("uploads the Happy Horse reference image through the New API multipart video contract", async () => {
         mocks.getAuthSettings.mockResolvedValue(newApiVideoSettings("newapi", "happyhorse-1.1-i2v"));
         mocks.fetchInternalApi.mockResolvedValue(json({ id: "upstream-happyhorse-image", status: "queued" }));
         const reference = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=";
@@ -353,8 +354,15 @@ describe("video generation candidate failover", () => {
 
         expect(response.status).toBe(200);
         expect(url).toContain("/api/ai/system/one/videos");
-        expect(new Headers(init.headers).get("content-type")).toBe("application/json");
-        expect(JSON.parse(String(init.body))).toEqual({ model: "happyhorse-1.1-i2v", prompt: expect.stringContaining("A test video"), first_image: reference, duration: 5, resolution: "720P", seed: 0 });
+        expect(init.body).toBeInstanceOf(FormData);
+        expect(new Headers(init.headers).has("content-type")).toBe(false);
+        const body = init.body as FormData;
+        expect(body.get("model")).toBe("happyhorse-1.1-i2v");
+        expect(body.get("prompt")).toEqual(expect.stringContaining("A test video"));
+        expect(body.get("seconds")).toBe("5");
+        expect(body.get("size")).toBe("1280x720");
+        expect(body.getAll("input_reference")).toHaveLength(1);
+        expect(body.get("input_reference")).toBeInstanceOf(File);
     });
 
     it("keeps New API image-to-video requests as multipart form data", async () => {

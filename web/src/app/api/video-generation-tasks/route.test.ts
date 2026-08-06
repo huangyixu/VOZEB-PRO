@@ -318,6 +318,47 @@ describe("video generation candidate failover", () => {
         expect(body.get("input_reference")).toBeInstanceOf(File);
     });
 
+    it("sends New API text-to-video requests as JSON even when the model uses the OpenAI video template", async () => {
+        mocks.getAuthSettings.mockResolvedValue(newApiVideoSettings());
+        mocks.fetchInternalApi.mockResolvedValue(json({ id: "upstream-new-api", status: "queued" }));
+
+        const response = await POST(request({ model: "video", videoSeconds: "5", size: "16:9" }));
+        const [, init] = mocks.fetchInternalApi.mock.calls[0] as [string, RequestInit];
+
+        expect(response.status).toBe(200);
+        expect(new Headers(init.headers).get("content-type")).toBe("application/json");
+        expect(JSON.parse(String(init.body))).toEqual({ model: "video-one", prompt: "A test video", seconds: 5, size: "1280x720" });
+    });
+
+    it("keeps New API image-to-video requests as multipart form data", async () => {
+        mocks.getAuthSettings.mockResolvedValue(newApiVideoSettings());
+        mocks.fetchInternalApi.mockResolvedValue(json({ id: "upstream-new-api-image", status: "queued" }));
+        const reference = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=";
+
+        const response = await POST(request({ model: "video", videoSeconds: "5", size: "16:9" }, [{ type: "image", url: reference }]));
+        const [, init] = mocks.fetchInternalApi.mock.calls[0] as [string, RequestInit];
+        const body = init.body as FormData;
+
+        expect(response.status).toBe(200);
+        expect(init.body).toBeInstanceOf(FormData);
+        expect(new Headers(init.headers).has("content-type")).toBe(false);
+        expect(body.get("model")).toBe("video-one");
+        expect(body.get("input_reference")).toBeInstanceOf(File);
+    });
+
+    it("keeps official OpenAI text-to-video requests as multipart form data", async () => {
+        mocks.getAuthSettings.mockResolvedValue(newApiVideoSettings("openai"));
+        mocks.fetchInternalApi.mockResolvedValue(json({ id: "upstream-openai-text", status: "queued" }));
+
+        const response = await POST(request({ model: "video", videoSeconds: "5", size: "16:9" }));
+        const [, init] = mocks.fetchInternalApi.mock.calls[0] as [string, RequestInit];
+
+        expect(response.status).toBe(200);
+        expect(init.body).toBeInstanceOf(FormData);
+        expect(new Headers(init.headers).has("content-type")).toBe(false);
+        expect((init.body as FormData).get("model")).toBe("video-one");
+    });
+
     it("persists the Drama project, episode and shot task context", async () => {
         mocks.fetchInternalApi.mockResolvedValue(json({ id: "upstream-drama", status: "queued" }));
         const context = { surface: "drama", projectId: "drama-one", episodeId: "episode-one", shotId: "shot-one", estimatedPoints: 8, attemptNo: 2, clientRequestId: "drama-video:one" };
@@ -584,6 +625,34 @@ function qingyanSettings() {
                     supportsReferenceAudio: false,
                     referenceRule: "图生视频使用公网图片 URL；单图字段 image，多图字段 images。",
                     requestTemplate: '{"model":"{{model}}","prompt":"{{prompt}}","duration":5,"ratio":"16:9","image":"https://...","images":["https://..."]}',
+                },
+            },
+        ],
+        logicalModels: [{ ...settings.logicalModels[0], bindings: [settings.logicalModels[0].bindings[0]] }],
+    };
+}
+
+function newApiVideoSettings(protocol: "newapi" | "openai" = "newapi") {
+    return {
+        ...settings,
+        systemChannels: [
+            {
+                ...channels[0],
+                advancedConfig: {
+                    protocol,
+                    modelConfigs: {
+                        "video-one": {
+                            capability: "video",
+                            protocol: "openai",
+                            createPath: "/videos",
+                            imageToVideoPath: "/videos",
+                            queryPath: "/videos/:task_id",
+                            requestTemplate: "multipart/form-data: model、prompt、seconds、size、input_reference",
+                            resultField: "/videos/:task_id/content",
+                            statusField: "status",
+                            supportsReferenceImage: true,
+                        },
+                    },
                 },
             },
         ],

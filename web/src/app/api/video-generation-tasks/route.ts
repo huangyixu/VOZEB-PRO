@@ -242,7 +242,11 @@ export async function createUpstream(
         ...(references.length ? { ref_assets: references.map((item) => ({ type: item.type, url: item.url })) } : {}),
     };
     const globalPreset = globalAiOpcVideoPreset(channel.advancedConfig, channel.model);
-    const multipart = channel.advancedConfig?.requestTemplate?.trim().toLowerCase().startsWith("multipart/form-data") === true;
+    const multipartTemplate = channel.advancedConfig?.requestTemplate?.trim().toLowerCase().startsWith("multipart/form-data") === true;
+    const newApiTextToVideoJson = channel.channelProtocol === "newapi" && multipartTemplate && images.length === 0;
+    const multipart = multipartTemplate && !newApiTextToVideoJson;
+    const jsonTemplate = newApiTextToVideoJson ? undefined : channel.advancedConfig?.requestTemplate;
+    const jsonDefaults = newApiTextToVideoJson ? { model: channel.model, prompt, seconds: values.seconds, size: `${dimensions.width}x${dimensions.height}` } : defaults;
     const payload = multipart
         ? undefined
         : channel.advancedConfig?.protocol === "seedance-special"
@@ -266,7 +270,7 @@ export async function createUpstream(
                   audios,
                   generateAudio: raw.videoGenerateAudio !== "false",
               })
-            : buildVideoProviderRequest(channel.advancedConfig?.requestTemplate, defaults, values);
+            : buildVideoProviderRequest(jsonTemplate, jsonDefaults, values);
     const requestBody = multipart ? await buildOpenAiVideoFormData({ model: channel.model, prompt, seconds: values.seconds as number, width: dimensions.width, height: dimensions.height, imageUrls: images, origin, cookie }) : JSON.stringify(payload);
     const imageToVideoPath = images.length ? channel.advancedConfig?.imageToVideoPath?.trim() : "";
     const createPaths = globalPreset ? [globalPreset.createPath] : imageToVideoPath ? [imageToVideoPath] : resolvedProviderCreatePaths(channel.advancedConfig, "video", CREATE_PATHS);

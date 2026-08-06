@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { channelSupportsModel, generationModelId, resolveModelAdvancedConfig, resolveSystemGenerationChannel, systemGenerationChannelId } from "./generation-channel";
+import { channelSupportsModel, generationModelId, resolveModelAdvancedConfig, resolveSystemGenerationChannel, systemGenerationChannelId, toSystemGenerationChannel } from "./generation-channel";
 
 const channels = [{ id: "channel-1", enabled: true, apiFormat: "gemini" as const, models: ["models/video-v1"] }];
 
@@ -52,5 +52,36 @@ describe("resolveSystemGenerationChannel", () => {
 
         expect(resolveModelAdvancedConfig(advanced, "openai-text")).toMatchObject({ createPath: "/chat/completions", queryPath: "" });
         expect(resolveModelAdvancedConfig(advanced, "sd2.0")).toMatchObject({ protocol: "seedance", createPath: "/videos", queryPath: "/videos/:task_id" });
+    });
+
+    it("preserves the top-level channel protocol when a model overrides its protocol", () => {
+        const config = toSystemGenerationChannel({
+            logicalModelId: "seedance-2.0",
+            upstreamModel: "doubao-sd-2.0",
+            channelId: "new-api",
+            channel: {
+                id: "new-api",
+                name: "New API",
+                baseUrl: "https://new-api.example.com",
+                apiKey: "secret",
+                apiFormat: "openai",
+                models: ["doubao-sd-2.0"],
+                enabled: true,
+                advancedConfig: {
+                    protocol: "newapi",
+                    modelConfigs: {
+                        "doubao-sd-2.0": {
+                            capability: "video",
+                            protocol: "openai",
+                            createPath: "/videos",
+                            requestTemplate: "multipart/form-data: model、prompt、seconds、size、input_reference",
+                        },
+                    },
+                },
+            } as never,
+        });
+
+        expect(config.channelProtocol).toBe("newapi");
+        expect(config.advancedConfig?.protocol).toBe("openai");
     });
 });

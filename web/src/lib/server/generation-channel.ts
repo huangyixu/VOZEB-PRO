@@ -10,6 +10,7 @@ export type SystemGenerationChannelConfig = {
     apiFormat: GenerationApiFormat;
     model: string;
     channelId?: string;
+    channelProtocol?: import("@/lib/auth/store").SystemChannelProtocol;
     logicalModel?: string;
     advancedConfig?: import("@/lib/auth/store").SystemChannelAdvancedConfig;
     capabilityProfile?: ReturnType<typeof import("@/lib/model-routing-config").resolveLogicalModelCapabilityProfile>;
@@ -52,6 +53,7 @@ export function toSystemGenerationChannel(resolved: ResolvedLogicalModel): Syste
         apiFormat: modelConfig?.apiFormat || resolved.channel.apiFormat,
         model: resolved.upstreamModel,
         channelId: resolved.channelId,
+        channelProtocol: resolved.channel.advancedConfig?.protocol,
         logicalModel: resolved.logicalModelId,
         advancedConfig: resolveModelAdvancedConfig(resolved.channel.advancedConfig, resolved.upstreamModel),
         capabilityProfile: resolved.capabilityProfile,

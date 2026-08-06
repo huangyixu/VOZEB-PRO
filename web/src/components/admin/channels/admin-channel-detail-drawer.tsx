@@ -61,7 +61,7 @@ export function AdminChannelDetailDrawer({ open, channel, settings, fetching, te
                         ),
                     },
                     { key: "models", label: `上游模型 ${channel.models.length}`, children: <ChannelModels channel={channel} /> },
-                    { key: "validation", label: "能力验证", children: <ChannelValidation channel={channel} entries={entries} testingKey={testingKey} onTestHealth={onTestHealth} onTestAll={onTestAll} /> },
+                    { key: "validation", label: "连接与试运行", children: <ChannelValidation channel={channel} entries={entries} testingKey={testingKey} onTestHealth={onTestHealth} onTestAll={onTestAll} /> },
                 ]}
             />
         </Drawer>
@@ -103,7 +103,7 @@ function ChannelOverview({
                         同步模型
                     </Button>
                     <Button type="primary" icon={<FlaskConical className="size-4" />} loading={testing} onClick={onTestAll}>
-                        检测渠道
+                        连接试运行
                     </Button>
                 </Space>
             </div>
@@ -113,7 +113,7 @@ function ChannelOverview({
                 <OverviewValue label="协议" value={channelProtocolLabel(channel)} />
                 <OverviewValue label="上游模型" value={`${channel.models.length} 个`} />
                 <OverviewValue label="逻辑绑定" value={`${channelBindingCount(channel.id, settings)} 个`} />
-                <OverviewValue label="本次检测" value={entries.length ? `${entries.filter(({ result }) => result.ok).length}/${entries.length} 通过` : "尚未检测"} />
+                <OverviewValue label="本次试运行" value={entries.length ? `${entries.filter(({ result }) => result.ok).length}/${entries.length} 通过` : "尚未试运行"} />
             </div>
             <div>
                 <div className="mb-2 text-sm font-semibold text-stone-950 dark:text-stone-100">逻辑模型绑定</div>
@@ -168,11 +168,11 @@ function ChannelValidation({
             <div className="mb-4 flex flex-wrap justify-end gap-2">
                 {kinds.map((kind) => (
                     <Button key={kind} loading={testingKey === `${channel.id}:${kind}`} onClick={() => onTestHealth(kind)}>
-                        检测{healthKindLabel(kind)}
+                        试运行{healthKindLabel(kind)}
                     </Button>
                 ))}
                 <Button type="primary" icon={<FlaskConical className="size-4" />} loading={testingKey === `${channel.id}:all`} onClick={onTestAll}>
-                    全部检测
+                    全部试运行
                 </Button>
             </div>
             <div className="divide-y divide-stone-200 border-y border-stone-200 dark:divide-stone-800 dark:border-stone-800">
@@ -187,7 +187,7 @@ function ChannelValidation({
                         <Tag color={result.ok ? "success" : "error"}>{result.ok ? "通过" : "失败"}</Tag>
                     </div>
                 ))}
-                {!entries.length ? <div className="py-10 text-center text-sm text-stone-500 dark:text-stone-400">当前管理会话还没有检测记录</div> : null}
+                {!entries.length ? <div className="py-10 text-center text-sm text-stone-500 dark:text-stone-400">当前管理会话还没有试运行记录</div> : null}
             </div>
         </div>
     );

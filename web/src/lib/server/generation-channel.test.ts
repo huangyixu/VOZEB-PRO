@@ -54,6 +54,16 @@ describe("resolveSystemGenerationChannel", () => {
         expect(resolveModelAdvancedConfig(advanced, "sd2.0")).toMatchObject({ protocol: "seedance", createPath: "/videos", queryPath: "/videos/:task_id" });
     });
 
+    it("keeps a model-level reference override over a Global AI OPC preset", () => {
+        const advanced = {
+            protocol: "globalaiopc",
+            globalAiOpcPresets: ["video-happyhorse-i2v"],
+            modelConfigs: { "happyhorse-1.1-i2v": { capability: "video", supportsReferenceImage: false } },
+        } as never;
+
+        expect(resolveModelAdvancedConfig(advanced, "happyhorse-1.1-i2v")).toMatchObject({ createPath: "/happyhorse-i2v/videos", supportsReferenceImage: false });
+    });
+
     it("preserves the top-level channel protocol when a model overrides its protocol", () => {
         const config = toSystemGenerationChannel({
             logicalModelId: "seedance-2.0",

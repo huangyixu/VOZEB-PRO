@@ -4,6 +4,7 @@ import type { LogicalModel, SystemModelChannel } from "@/lib/auth/store";
 import {
     channelDetectedCapabilities,
     channelModelCapability,
+    channelReferenceCapabilities,
     deriveLogicalModelsConfig,
     isLogicalModelResolvable,
     mergeChannelModelsIntoLogicalModels,
@@ -11,6 +12,7 @@ import {
     normalizeDefaultModelsConfig,
     normalizeLogicalModelsConfig,
     resolveLogicalModelConfig,
+    resolveLogicalModelCapabilityProfile,
 } from "./model-routing-config";
 
 const channel = (id: string, models: string[], enabled = true): SystemModelChannel => ({ id, name: id, baseUrl: `https://${id}.example.com/v1`, apiKey: "test-secret", apiFormat: "openai", models, enabled });
@@ -94,6 +96,20 @@ describe("model routing config", () => {
         const source = channel("one", ["auto", "gpt-5-3", "gpt-image-2"]);
 
         expect(Array.from(channelDetectedCapabilities(source))).toEqual(["text", "image"]);
+    });
+
+    it("aggregates channel reference capabilities from individual models", () => {
+        const source = channel("one", ["video-t2v", "video-i2v"]);
+        source.advancedConfig = {
+            modelConfigs: {
+                "video-t2v": { capability: "video", supportsReferenceImage: false },
+                "video-i2v": { capability: "video", supportsReferenceImage: true },
+            },
+        } as never;
+
+        expect(channelReferenceCapabilities(source, "video")).toEqual({ supportsReferenceImage: true, supportsReferenceVideo: false, supportsReferenceAudio: false });
+        expect(resolveLogicalModelCapabilityProfile({ capabilityProfile: { supportsReferenceImage: false } }, "video", source, "video-i2v")?.supportsReferenceImage).toBe(false);
+        expect(resolveLogicalModelCapabilityProfile({ capabilityProfile: { supportsReferenceImage: true } }, "video", source, "video-t2v")?.supportsReferenceImage).toBe(false);
     });
 
     it("requires an enabled matching binding for defaults", () => {

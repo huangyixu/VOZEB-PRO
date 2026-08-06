@@ -250,13 +250,24 @@ export function protocolModelConfig(protocol: SystemChannelProtocol, capability:
 }
 
 export function applyModelProtocol(config: SystemChannelModelConfig, protocol: SystemChannelProtocol): SystemChannelModelConfig {
-    return protocolModelConfig(protocol, config.capability) || { ...config, source: "manual", protocol };
+    const preset = protocolModelConfig(protocol, config.capability);
+    return preset ? withModelReferenceOverrides(preset, config) : { ...config, source: "manual", protocol };
 }
 
 export function normalizeStrictProtocolModelConfig(config: SystemChannelModelConfig, fallbackProtocol: SystemChannelProtocol): SystemChannelModelConfig {
     const protocol = config.protocol || fallbackProtocol;
     if (!channelProtocolDefinition(protocol).strict) return config;
-    return protocolModelConfig(protocol, config.capability) || config;
+    const preset = protocolModelConfig(protocol, config.capability);
+    return preset ? withModelReferenceOverrides(preset, config) : config;
+}
+
+function withModelReferenceOverrides(preset: SystemChannelModelConfig, config: SystemChannelModelConfig): SystemChannelModelConfig {
+    return {
+        ...preset,
+        ...(typeof config.supportsReferenceImage === "boolean" ? { supportsReferenceImage: config.supportsReferenceImage } : {}),
+        ...(typeof config.supportsReferenceVideo === "boolean" ? { supportsReferenceVideo: config.supportsReferenceVideo } : {}),
+        ...(typeof config.supportsReferenceAudio === "boolean" ? { supportsReferenceAudio: config.supportsReferenceAudio } : {}),
+    };
 }
 
 export function resolveChannelModelConfig(config: SystemChannelAdvancedConfig | undefined, model: string) {
@@ -293,7 +304,7 @@ export function applyChannelProtocol(channel: SystemModelChannel, protocol: Syst
         const builtIn = definition.builtInModels?.find((item) => normalizeModelId(item.id) === key);
         const capability = builtIn?.capability || modelConfigs[key]?.capability || modelCapabilities[key] || inferModelCapability(model);
         const strict = protocolModelConfig(protocol, capability);
-        if (strict) modelConfigs[key] = strict;
+        if (strict) modelConfigs[key] = withModelReferenceOverrides(strict, modelConfigs[key] || { capability });
         modelCapabilities[key] = capability;
     }
     const primary = definition.capabilities.length === 1 ? definition.operations[definition.capabilities[0]] : undefined;
@@ -385,9 +396,6 @@ export function channelProtocolValidationErrors(channel: SystemModelChannel) {
         if ((config.requestTemplate || "") !== (expected.requestTemplate || "")) errors.push(`${model} 的请求参数必须使用 ${definition.label} 协议预设`);
         if ((config.resultField || "") !== (expected.resultField || "")) errors.push(`${model} 的结果字段必须使用 ${definition.label} 协议预设`);
         if ((config.statusField || "") !== (expected.statusField || "")) errors.push(`${model} 的状态字段必须使用 ${definition.label} 协议预设`);
-        if (Boolean(config.supportsReferenceImage) !== Boolean(expected.supportsReferenceImage)) errors.push(`${model} 的参考图片能力必须使用 ${definition.label} 协议预设`);
-        if (Boolean(config.supportsReferenceVideo) !== Boolean(expected.supportsReferenceVideo)) errors.push(`${model} 的参考视频能力必须使用 ${definition.label} 协议预设`);
-        if (Boolean(config.supportsReferenceAudio) !== Boolean(expected.supportsReferenceAudio)) errors.push(`${model} 的参考音频能力必须使用 ${definition.label} 协议预设`);
     }
     return errors;
 }

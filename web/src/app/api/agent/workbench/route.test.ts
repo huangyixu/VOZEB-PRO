@@ -587,7 +587,18 @@ function workbenchRequest(body: unknown) {
 const settings = {
     defaultModels: { textModel: "planner", imageModel: "image-logical", videoModel: "", audioModel: "" },
     agentSkills: [],
-    systemChannels: [{ id: "main", name: "主渠道", baseUrl: "https://api.example.com/v1", apiKey: "server-only", apiFormat: "openai", models: ["vendor/planner", "vendor/image"], enabled: true }],
+    systemChannels: [
+        {
+            id: "main",
+            name: "主渠道",
+            baseUrl: "https://api.example.com/v1",
+            apiKey: "server-only",
+            apiFormat: "openai",
+            models: ["vendor/planner", "vendor/image"],
+            enabled: true,
+            advancedConfig: { modelConfigs: { "vendor/planner": { capability: "text" }, "vendor/image": { capability: "image", supportsReferenceImage: true } } },
+        },
+    ],
     logicalModels: [
         { id: "planner", name: "规划模型", capability: "text", enabled: true, bindings: [{ id: "planner-binding", channelId: "main", upstreamModel: "vendor/planner", enabled: true, priority: 1 }] },
         { id: "image-logical", name: "图片模型", capability: "image", enabled: true, bindings: [{ id: "image-binding", channelId: "main", upstreamModel: "vendor/image", enabled: true, priority: 1 }] },
@@ -606,13 +617,17 @@ function videoSettings() {
 }
 
 function referenceCapabilitySettings(withSupportedModel: boolean) {
-    const mainChannel = { ...settings.systemChannels[0], models: [...settings.systemChannels[0].models, "vendor/video-basic"], advancedConfig: { supportsReferenceImage: false, supportsReferenceVideo: false, supportsReferenceAudio: false } };
+    const mainChannel = {
+        ...settings.systemChannels[0],
+        models: [...settings.systemChannels[0].models, "vendor/video-basic"],
+        advancedConfig: { ...settings.systemChannels[0].advancedConfig, modelConfigs: { ...settings.systemChannels[0].advancedConfig.modelConfigs, "vendor/video-basic": { capability: "video" as const, supportsReferenceImage: false } } },
+    };
     const referenceChannel = {
         ...settings.systemChannels[0],
         id: "reference-video",
         name: "参考视频渠道",
         models: ["vendor/video-reference"],
-        advancedConfig: { supportsReferenceImage: true, supportsReferenceVideo: false, supportsReferenceAudio: false },
+        advancedConfig: { modelConfigs: { "vendor/video-reference": { capability: "video" as const, supportsReferenceImage: true, supportsReferenceVideo: false, supportsReferenceAudio: false } } },
     };
     return {
         ...settings,

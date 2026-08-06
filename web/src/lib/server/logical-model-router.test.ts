@@ -45,8 +45,9 @@ describe("resolveLogicalModel", () => {
     });
 
     it("uses binding weight inside the same priority and exposes capability limits", () => {
+        const high = { ...channel("high", ["video-high"]), advancedConfig: { modelConfigs: { "video-high": { capability: "video" as const, supportsReferenceImage: true } } } };
         const settings = {
-            systemChannels: [channel("low", ["video-low"]), channel("high", ["video-high"])],
+            systemChannels: [channel("low", ["video-low"]), high],
             logicalModels: [
                 {
                     id: "video",

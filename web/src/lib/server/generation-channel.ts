@@ -65,6 +65,7 @@ export function resolveModelAdvancedConfig(config: import("@/lib/auth/store").Sy
     const resolved = resolveChannelModelAdvancedConfig(config, model)!;
     const preset = resolveGlobalAiOpcPreset(resolved, model);
     if (!preset) return resolved;
+    const modelConfig = resolveChannelModelConfig(config, model);
     return {
         ...resolved,
         globalAiOpcPreset: preset.id as import("@/lib/auth/store").SystemChannelAdvancedConfig["globalAiOpcPreset"],
@@ -72,9 +73,9 @@ export function resolveModelAdvancedConfig(config: import("@/lib/auth/store").Sy
         queryPath: preset.queryPath || "",
         requestTemplate: "",
         durationRange: preset.durationRange || "",
-        supportsReferenceImage: Boolean(preset.supportsReferenceImage),
-        supportsReferenceVideo: Boolean(preset.supportsReferenceVideo),
-        supportsReferenceAudio: Boolean(preset.supportsReferenceAudio),
+        supportsReferenceImage: modelConfig?.supportsReferenceImage ?? Boolean(preset.supportsReferenceImage),
+        supportsReferenceVideo: modelConfig?.supportsReferenceVideo ?? Boolean(preset.supportsReferenceVideo),
+        supportsReferenceAudio: modelConfig?.supportsReferenceAudio ?? Boolean(preset.supportsReferenceAudio),
     };
 }
 

@@ -1,6 +1,6 @@
 import type { LogicalModelCapability, SystemDefaultModels, SystemModelChannel } from "@/lib/auth/store";
 import type { ChannelHealthResult } from "@/components/admin/admin-system-channel-editor";
-import { channelDetectedCapabilities, normalizeDefaultModelsConfig } from "@/lib/model-routing-config";
+import { channelDetectedCapabilities, channelReferenceCapabilities, normalizeDefaultModelsConfig } from "@/lib/model-routing-config";
 import { channelProtocolDefinition } from "@/lib/channel-protocol-registry";
 
 export type ChannelWorkspaceSettings = {
@@ -28,7 +28,7 @@ export function channelWorkspaceStatus(channel: SystemModelChannel, healthResult
 }
 
 export function channelWorkspaceStatusLabel(status: ChannelWorkspaceStatus) {
-    return { healthy: "正常", warning: "需检查", untested: "待检测", draft: "草稿", disabled: "已停用" }[status];
+    return { healthy: "正常", warning: "需检查", untested: "未试运行", draft: "草稿", disabled: "已停用" }[status];
 }
 
 export function channelWorkspaceStatusColor(status: ChannelWorkspaceStatus) {
@@ -36,7 +36,12 @@ export function channelWorkspaceStatusColor(status: ChannelWorkspaceStatus) {
 }
 
 export function channelCapabilityLabels(channel: SystemModelChannel) {
-    return Array.from(channelDetectedCapabilities(channel)).map((capability) => capabilityLabels[capability]);
+    const labels = Array.from(channelDetectedCapabilities(channel)).map((capability) => capabilityLabels[capability]);
+    const references = channelReferenceCapabilities(channel);
+    if (references.supportsReferenceImage) labels.push("参考图");
+    if (references.supportsReferenceVideo) labels.push("参考视频");
+    if (references.supportsReferenceAudio) labels.push("参考音频");
+    return labels;
 }
 
 export function channelProtocolLabel(channel: SystemModelChannel) {

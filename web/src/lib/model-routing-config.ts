@@ -153,16 +153,31 @@ export function channelDetectedCapabilities(channel: Pick<SystemModelChannel, "a
     return new Set(channel.models.map((model) => channelModelCapability(channel, model)));
 }
 
+export function channelReferenceCapabilities(channel: Pick<SystemModelChannel, "advancedConfig" | "models">, capability?: LogicalModelCapability) {
+    const models = capability ? channel.models.filter((model) => channelModelCapability(channel, model) === capability) : channel.models;
+    const profiles = models.map((model) => resolveLogicalModelCapabilityProfile({}, channelModelCapability(channel, model), channel, model));
+    return {
+        supportsReferenceImage: profiles.some((profile) => profile?.supportsReferenceImage),
+        supportsReferenceVideo: profiles.some((profile) => profile?.supportsReferenceVideo),
+        supportsReferenceAudio: profiles.some((profile) => profile?.supportsReferenceAudio),
+    };
+}
+
 export function resolveLogicalModelCapabilityProfile(binding: Pick<LogicalModelBinding, "capabilityProfile">, capability: LogicalModelCapability, channel?: Pick<SystemModelChannel, "advancedConfig">, upstreamModel = "") {
     if (!binding.capabilityProfile && !channel?.advancedConfig) return undefined;
     const stored = binding.capabilityProfile || {};
     const advanced = channel?.advancedConfig;
     const globalPreset = resolveGlobalAiOpcPreset(advanced, upstreamModel);
     const modelConfig = resolveChannelModelConfig(advanced, upstreamModel) || advanced?.operationConfigs?.[capability];
+    const upstreamReference = {
+        supportsReferenceImage: booleanValue(modelConfig?.supportsReferenceImage, globalPreset?.supportsReferenceImage),
+        supportsReferenceVideo: booleanValue(modelConfig?.supportsReferenceVideo, globalPreset?.supportsReferenceVideo),
+        supportsReferenceAudio: booleanValue(modelConfig?.supportsReferenceAudio, globalPreset?.supportsReferenceAudio),
+    };
     return {
-        supportsReferenceImage: booleanValue(stored.supportsReferenceImage, globalPreset?.supportsReferenceImage ?? modelConfig?.supportsReferenceImage ?? advanced?.supportsReferenceImage),
-        supportsReferenceVideo: booleanValue(stored.supportsReferenceVideo, globalPreset?.supportsReferenceVideo ?? modelConfig?.supportsReferenceVideo ?? advanced?.supportsReferenceVideo),
-        supportsReferenceAudio: booleanValue(stored.supportsReferenceAudio, globalPreset?.supportsReferenceAudio ?? modelConfig?.supportsReferenceAudio ?? advanced?.supportsReferenceAudio),
+        supportsReferenceImage: upstreamReference.supportsReferenceImage && stored.supportsReferenceImage !== false,
+        supportsReferenceVideo: upstreamReference.supportsReferenceVideo && stored.supportsReferenceVideo !== false,
+        supportsReferenceAudio: upstreamReference.supportsReferenceAudio && stored.supportsReferenceAudio !== false,
         maxReferenceImages: positiveInteger(stored.maxReferenceImages),
         aspectRatios: normalizeAspectRatios(stored.aspectRatios),
         minDurationSeconds: positiveNumber(stored.minDurationSeconds),

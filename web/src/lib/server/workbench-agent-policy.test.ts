@@ -31,6 +31,29 @@ describe("workbench agent policy", () => {
         expect(trusted.modelOptions).toEqual([]);
     });
 
+    it("selects only the image-to-video model when one channel contains mixed video capabilities", () => {
+        const mixed = structuredClone(settings);
+        const channel = mixed.systemChannels.find((item) => item.id === "basic")!;
+        channel.models.push("vendor/video-i2v");
+        channel.advancedConfig = {
+            ...channel.advancedConfig!,
+            modelConfigs: {
+                "vendor/image": { capability: "image", supportsReferenceImage: false },
+                "vendor/video-basic": { capability: "video", supportsReferenceImage: false },
+                "vendor/video-i2v": { capability: "video", supportsReferenceImage: true },
+            },
+        };
+        mixed.systemChannels = [channel];
+        mixed.logicalModels = [
+            mixed.logicalModels.find((item) => item.id === "video-basic")!,
+            { id: "video-i2v", name: "图生视频模型", capability: "video", enabled: true, bindings: [{ id: "video-i2v-binding", channelId: "basic", upstreamModel: "vendor/video-i2v", enabled: true, priority: 1 }] },
+        ];
+
+        const trusted = buildTrustedWorkbenchBody(mixed, { workspace: "video", referenceTypes: ["image"] });
+
+        expect(trusted.models).toEqual(["video-i2v"]);
+    });
+
     it("does not let broad portrait keywords force reference editing", () => {
         expect(analyzeWorkbenchRequest(settings, "image", "生成一张自然光人像照片")).toMatchObject({ referenceRequired: false });
         expect(analyzeWorkbenchRequest(settings, "image", "给这张照片自然美颜精修")).toMatchObject({ referenceRequired: true });
@@ -250,7 +273,12 @@ const settings = {
             apiFormat: "openai",
             models: ["vendor/image", "vendor/video-basic"],
             enabled: true,
-            advancedConfig: { supportsReferenceImage: false, supportsReferenceVideo: false, supportsReferenceAudio: false },
+            advancedConfig: {
+                modelConfigs: {
+                    "vendor/image": { capability: "image", supportsReferenceImage: false },
+                    "vendor/video-basic": { capability: "video", supportsReferenceImage: false, supportsReferenceVideo: false, supportsReferenceAudio: false },
+                },
+            },
         },
         {
             id: "reference",
@@ -260,7 +288,11 @@ const settings = {
             apiFormat: "openai",
             models: ["vendor/video-image-audio"],
             enabled: true,
-            advancedConfig: { supportsReferenceImage: true, supportsReferenceVideo: false, supportsReferenceAudio: true },
+            advancedConfig: {
+                modelConfigs: {
+                    "vendor/video-image-audio": { capability: "video", supportsReferenceImage: true, supportsReferenceVideo: false, supportsReferenceAudio: true },
+                },
+            },
         },
     ],
     logicalModels: [

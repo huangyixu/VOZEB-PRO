@@ -176,14 +176,7 @@ function withLockedModelDecision(decisions: WorkbenchPlanDecision[] | undefined,
 
 function workbenchModelOptions(settings: AuthSettings, workspace: WorkbenchWorkspace, referenceTypes: WorkbenchReferenceType[]): WorkbenchModelOption[] {
     return settings.logicalModels
-        .filter(
-            (model) =>
-                model.enabled &&
-                model.capability === workspace &&
-                resolveLogicalModelCandidates(settings, workspace, model.id).some(
-                    (candidate) => channelSupportsReferenceTypes(candidate.channel.advancedConfig, referenceTypes) && profileSupportsReferenceTypes(candidate.capabilityProfile, referenceTypes),
-                ),
-        )
+        .filter((model) => model.enabled && model.capability === workspace && resolveLogicalModelCandidates(settings, workspace, model.id).some((candidate) => profileSupportsReferenceTypes(candidate.capabilityProfile, referenceTypes)))
         .map((model) => ({ id: model.id, name: model.name }));
 }
 
@@ -193,13 +186,8 @@ function normalizeReferenceTypes(value: unknown, workspace: WorkbenchWorkspace):
     return [...new Set(value.filter((item): item is WorkbenchReferenceType => typeof item === "string" && allowed.has(item as WorkbenchReferenceType)))];
 }
 
-function channelSupportsReferenceTypes(config: AuthSettings["systemChannels"][number]["advancedConfig"], referenceTypes: WorkbenchReferenceType[]) {
-    if (!referenceTypes.length || !config) return true;
-    return referenceTypes.every((type) => (type === "image" ? config.supportsReferenceImage : type === "video" ? config.supportsReferenceVideo : config.supportsReferenceAudio));
-}
-
 function profileSupportsReferenceTypes(profile: ReturnType<typeof import("@/lib/model-routing-config").resolveLogicalModelCapabilityProfile>, referenceTypes: WorkbenchReferenceType[]) {
-    return !profile || referenceTypes.every((type) => (type === "image" ? profile.supportsReferenceImage : type === "video" ? profile.supportsReferenceVideo : profile.supportsReferenceAudio));
+    return !referenceTypes.length || Boolean(profile && referenceTypes.every((type) => (type === "image" ? profile.supportsReferenceImage : type === "video" ? profile.supportsReferenceVideo : profile.supportsReferenceAudio)));
 }
 
 function workbenchCurrentConfig(value: unknown, workspace: WorkbenchWorkspace, models: string[]): Record<string, unknown> {

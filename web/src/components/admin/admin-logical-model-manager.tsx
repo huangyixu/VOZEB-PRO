@@ -6,7 +6,7 @@ import { nanoid } from "nanoid";
 import { useDeferredValue, useMemo, useState } from "react";
 
 import type { LogicalModel, LogicalModelBinding, LogicalModelCapability, LogicalModelCapabilityProfile, SystemDefaultModels, SystemModelChannel } from "@/lib/auth/store";
-import { capabilityLabel, isLogicalModelResolvable, mergeChannelModelsIntoLogicalModels, normalizeDefaultModelsConfig, resolveLogicalModelConfig } from "@/lib/model-routing-config";
+import { capabilityLabel, isLogicalModelResolvable, mergeChannelModelsIntoLogicalModels, normalizeDefaultModelsConfig, resolveLogicalModelCapabilityProfile, resolveLogicalModelConfig } from "@/lib/model-routing-config";
 import { LabeledControl, SectionTitle } from "@/components/admin/admin-settings-controls";
 
 type Props = {
@@ -270,6 +270,7 @@ function BindingEditor({
     const channelOptions = channels.map((item) => ({ label: `${item.name}${item.enabled ? "" : "（停用）"}`, value: item.id }));
     const modelOptions = (channel?.models || []).map((model) => ({ label: model, value: model }));
     const profile = binding.capabilityProfile || {};
+    const upstreamProfile = channel ? resolveLogicalModelCapabilityProfile({}, capability, channel, binding.upstreamModel) : undefined;
     const effectiveAsync = profile.supportsAsync ?? (capability === "image" || capability === "video");
     const timeoutSeconds = profile.timeoutMs ? Math.round(profile.timeoutMs / 1000) : undefined;
     const defaultTimeoutSeconds = capability === "image" ? 600 : capability === "text" ? 120 : 180;
@@ -312,20 +313,32 @@ function BindingEditor({
                 <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                     <div>
                         <div className="text-xs font-semibold text-stone-700 dark:text-stone-200">能力档案</div>
-                        <div className="mt-1 text-[11px] text-stone-500 dark:text-stone-400">控制参考素材、参数范围、上游任务能力和资源限制。</div>
+                        <div className="mt-1 text-[11px] text-stone-500 dark:text-stone-400">这里只能收窄上游模型已声明的能力，不能新增上游未支持的能力。</div>
                     </div>
                     <Tag className="m-0">{capabilityLabel(capability)}</Tag>
                 </div>
                 <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                     <div className="flex flex-wrap items-center gap-3 text-xs text-stone-600 dark:text-stone-300 sm:col-span-2 lg:col-span-4">
-                        <Checkbox checked={profile.supportsReferenceImage === true} onChange={(event) => updateProfile({ supportsReferenceImage: event.target.checked })}>
-                            参考图片
+                        <Checkbox
+                            disabled={!upstreamProfile?.supportsReferenceImage}
+                            checked={Boolean(upstreamProfile?.supportsReferenceImage && profile.supportsReferenceImage !== false)}
+                            onChange={(event) => updateProfile({ supportsReferenceImage: event.target.checked })}
+                        >
+                            允许参考图片
                         </Checkbox>
-                        <Checkbox checked={profile.supportsReferenceVideo === true} onChange={(event) => updateProfile({ supportsReferenceVideo: event.target.checked })}>
-                            参考视频
+                        <Checkbox
+                            disabled={!upstreamProfile?.supportsReferenceVideo}
+                            checked={Boolean(upstreamProfile?.supportsReferenceVideo && profile.supportsReferenceVideo !== false)}
+                            onChange={(event) => updateProfile({ supportsReferenceVideo: event.target.checked })}
+                        >
+                            允许参考视频
                         </Checkbox>
-                        <Checkbox checked={profile.supportsReferenceAudio === true} onChange={(event) => updateProfile({ supportsReferenceAudio: event.target.checked })}>
-                            参考音频
+                        <Checkbox
+                            disabled={!upstreamProfile?.supportsReferenceAudio}
+                            checked={Boolean(upstreamProfile?.supportsReferenceAudio && profile.supportsReferenceAudio !== false)}
+                            onChange={(event) => updateProfile({ supportsReferenceAudio: event.target.checked })}
+                        >
+                            允许参考音频
                         </Checkbox>
                         <Checkbox checked={effectiveAsync} onChange={(event) => updateProfile({ supportsAsync: event.target.checked })}>
                             异步查询

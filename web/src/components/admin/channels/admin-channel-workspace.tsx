@@ -106,7 +106,7 @@ export function AdminChannelWorkspace({ settings, fetchingModelId, testingChanne
                         查看
                     </Button>
                     <Button size="small" icon={<RefreshCw className="size-3.5" />} loading={fetchingModelId === channel.id} aria-label={`同步 ${channel.name} 模型`} title="同步模型" onClick={() => void onFetchModels(channel)} />
-                    <Button size="small" icon={<FlaskConical className="size-3.5" />} loading={testingChannelKey === `${channel.id}:all`} aria-label={`检测 ${channel.name}`} title="检测渠道" onClick={() => void onTestAll(channel)} />
+                    <Button size="small" icon={<FlaskConical className="size-3.5" />} loading={testingChannelKey === `${channel.id}:all`} aria-label={`试运行 ${channel.name}`} title="连接试运行" onClick={() => void onTestAll(channel)} />
                     <Popconfirm title="删除这个渠道？" description="关联逻辑模型绑定和失效默认值会同步清理。" okText="删除" cancelText="取消" onConfirm={() => onDeleteChannel(channel.id)}>
                         <Button size="small" danger icon={<Trash2 className="size-3.5" />} aria-label={`删除 ${channel.name}`} title="删除渠道" />
                     </Popconfirm>
@@ -165,7 +165,7 @@ export function AdminChannelWorkspace({ settings, fetchingModelId, testingChanne
                         label: <TabLabel icon={<Route className="size-4" />} text="逻辑模型" />,
                         children: <AdminLogicalModelManager channels={settings.systemChannels} logicalModels={settings.logicalModels} defaultModels={settings.defaultModels} onChange={(routing) => onChange({ ...settings, ...routing })} />,
                     },
-                    { key: "validation", label: <TabLabel icon={<FlaskConical className="size-4" />} text="验证记录" />, children: <ValidationRecords settings={settings} healthResults={healthResults} onOpen={setDetailId} /> },
+                    { key: "validation", label: <TabLabel icon={<FlaskConical className="size-4" />} text="试运行记录" />, children: <ValidationRecords settings={settings} healthResults={healthResults} onOpen={setDetailId} /> },
                 ]}
             />
             <div className="mt-3 flex gap-2 sm:hidden">
@@ -211,7 +211,7 @@ export function AdminChannelWorkspace({ settings, fetchingModelId, testingChanne
 function ChannelMetrics({ enabled, total, healthy, protocols, readyDefaults }: { enabled: number; total: number; healthy: number; protocols: number; readyDefaults: number }) {
     const metrics = [
         { label: "启用渠道", value: `${enabled}/${total}` },
-        { label: "检测正常", value: String(healthy) },
+        { label: "试运行正常", value: String(healthy) },
         { label: "使用协议", value: String(protocols) },
         { label: "默认能力", value: `${readyDefaults}/4` },
     ];
@@ -279,7 +279,7 @@ function ChannelList({
                                 { label: "全部状态", value: "all" },
                                 { label: "正常", value: "healthy" },
                                 { label: "需检查", value: "warning" },
-                                { label: "待检测", value: "untested" },
+                                { label: "未试运行", value: "untested" },
                                 { label: "草稿", value: "draft" },
                                 { label: "已停用", value: "disabled" },
                             ]}
@@ -325,7 +325,7 @@ function ChannelList({
                                 查看
                             </Button>
                             <Button size="small" icon={<RefreshCw className="size-3.5" />} loading={fetchingModelId === channel.id} aria-label={`同步 ${channel.name} 模型`} onClick={() => onFetch(channel)} />
-                            <Button size="small" icon={<FlaskConical className="size-3.5" />} loading={testingChannelKey === `${channel.id}:all`} aria-label={`检测 ${channel.name}`} onClick={() => onTest(channel)} />
+                            <Button size="small" icon={<FlaskConical className="size-3.5" />} loading={testingChannelKey === `${channel.id}:all`} aria-label={`试运行 ${channel.name}`} onClick={() => onTest(channel)} />
                         </div>
                     </div>
                 ))}
@@ -411,7 +411,7 @@ function ValidationRecords({ settings, healthResults, onOpen }: { settings: Chan
     return (
         <div>
             <div className="mb-3 flex items-center gap-2 text-xs text-stone-500 dark:text-stone-400">
-                <ListFilter className="size-4" /> 当前管理会话的能力检测结果
+                <ListFilter className="size-4" /> 当前管理会话的连接与试运行结果
             </div>
             <div className="divide-y divide-stone-200 border-y border-stone-200 dark:divide-stone-800 dark:border-stone-800">
                 {records.map(({ key, result, channel }) => (
@@ -430,7 +430,7 @@ function ValidationRecords({ settings, healthResults, onOpen }: { settings: Chan
                         </div>
                     </button>
                 ))}
-                {!records.length ? <div className="py-12 text-center text-sm text-stone-500 dark:text-stone-400">还没有验证记录，请在渠道列表执行检测</div> : null}
+                {!records.length ? <div className="py-12 text-center text-sm text-stone-500 dark:text-stone-400">还没有试运行记录，可在渠道列表执行连接试运行</div> : null}
             </div>
         </div>
     );

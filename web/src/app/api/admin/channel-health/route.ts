@@ -14,7 +14,7 @@ import { isAgnesApiBaseUrl } from "@/lib/agnes-model-catalog";
 import { isSeedanceVideoModelName } from "@/lib/model-capability";
 import { normalizeModelId } from "@/lib/model-capability";
 import type { SystemChannelAdvancedConfig, SystemChannelProtocol } from "@/lib/auth/store";
-import { channelProtocolDefinition, protocolAuthHeaders, protocolModelConfig, resolveChannelAuthMode, resolveChannelModelAdvancedConfig } from "@/lib/channel-protocol-registry";
+import { channelProtocolDefinition, normalizeStrictProtocolModelConfig, protocolAuthHeaders, protocolModelConfig, resolveChannelAuthMode, resolveChannelModelAdvancedConfig } from "@/lib/channel-protocol-registry";
 import { resolveTextProtocol, type ResolvedTextProtocol } from "@/lib/server/text-protocol-resolver";
 import {
     applySelectedProtocolLabel,
@@ -105,7 +105,7 @@ export async function POST(request: Request) {
     const requestedProtocol = definition.id;
     channelAdvanced.protocol = requestedProtocol;
     const strictModelConfig = definition.strict ? protocolModelConfig(requestedProtocol, kind) : undefined;
-    const modelConfig = strictModelConfig || requestedModelConfig;
+    const modelConfig = definition.strict && requestedModelConfig ? normalizeStrictProtocolModelConfig(requestedModelConfig, requestedProtocol) : strictModelConfig || requestedModelConfig;
     const advancedConfig = resolveChannelModelAdvancedConfig(
         {
             ...channelAdvanced,

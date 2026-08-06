@@ -137,7 +137,6 @@ import {
     FinanceMiniRow,
     createSystemChannel,
     suggestedChannelModels,
-    buildAdvancedConfigFromHealth,
     firstOkResult,
     requestAdminModels,
     type AdminModelsResult,
@@ -458,7 +457,7 @@ export function useAdminDashboardSettingsActions({ state, data }: { state: Admin
         }
         const model = selectChannelHealthModel(channel, settings.defaultModels, kind);
         if (!model) {
-            const result = { ok: false, kind, model: "", status: 0, error: "没有找到可检测的模型名" } satisfies ChannelHealthResult;
+            const result = { ok: false, kind, model: "", status: 0, error: "没有找到可试运行的模型名" } satisfies ChannelHealthResult;
             if (!options?.quiet) message.error("请先为该渠道填写至少一个模型名");
             return result;
         }
@@ -545,17 +544,15 @@ export function useAdminDashboardSettingsActions({ state, data }: { state: Admin
             if (detectedModels.length) updateChannel(channel.id, adminModelsChannelPatch(channelForTest, { models: detectedModels, globalAiOpcPresets: channelForTest.advancedConfig?.globalAiOpcPresets }));
             const kinds = channelHealthKinds(channelForTest);
             if (!kinds.length) {
-                message.warning("没有识别到该协议可检测的真实模型");
+                message.warning("没有识别到该协议可试运行的真实模型");
                 return;
             }
             for (const kind of kinds) {
                 const result = await testChannelHealth(channelForTest, kind, { quiet: true, loadingKey, keepLoading: true });
                 if (result) results.push(result);
             }
-            const advancedConfig = buildAdvancedConfigFromHealth(channelForTest, results);
             updateChannel(channel.id, {
                 models: uniqueList([...detectedModels, ...results.map((result) => result.model).filter(Boolean)]),
-                advancedConfig,
                 healthResults: Object.fromEntries(results.map((result) => [result.kind, channelHealthSnapshot(result)])),
             });
             const okKinds: string[] = results.filter((result) => result.ok).map((result) => healthKindLabel(result.kind));
@@ -564,8 +561,8 @@ export function useAdminDashboardSettingsActions({ state, data }: { state: Admin
             if (imageReferenceTest?.ok) okKinds.push("图生图");
             else if (imageReferenceTest && !imageReferenceTest.ok) failedKinds.push("图生图");
             const summary = `可用：${okKinds.join("、") || "无"}${failedKinds.length ? `；需检查：${failedKinds.join("、")}` : ""}`;
-            if (failedKinds.length) message.warning(`${channel.name || "渠道"} 智能检测完成，${summary}`);
-            else message.success(`${channel.name || "渠道"} 智能检测完成，${summary}`);
+            if (failedKinds.length) message.warning(`${channel.name || "渠道"} 连接与试运行完成，${summary}`);
+            else message.success(`${channel.name || "渠道"} 连接与试运行完成，${summary}`);
         } finally {
             setTestingChannelKey("");
         }

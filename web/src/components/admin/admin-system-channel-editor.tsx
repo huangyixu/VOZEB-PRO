@@ -10,11 +10,11 @@ import { parseChannelExampleConfig } from "@/lib/channel-example-parser";
 import { buildGlobalAiOpcSelection, GLOBAL_AIOPC_PRESETS, globalAiOpcPresetOptions, resolveGlobalAiOpcCatalogPresets, resolveGlobalAiOpcPresets } from "@/lib/globalaiopc-catalog";
 import type { LogicalModelCapability, SystemChannelAdvancedConfig, SystemChannelModelConfig, SystemChannelProtocol, SystemModelChannel } from "@/lib/auth/store";
 import type { ChannelHealthKind as SharedChannelHealthKind, ChannelHealthResult as SharedChannelHealthResult } from "@/lib/channel-health-result";
-import { capabilityLabel, channelDetectedCapabilities, channelModelCapability } from "@/lib/model-routing-config";
+import { capabilityLabel, channelDetectedCapabilities, channelModelCapability, channelReferenceCapabilities } from "@/lib/model-routing-config";
 import { normalizeModelId } from "@/lib/model-capability";
 import { revealAdminChannelApiKey } from "@/services/api/admin-settings";
 import { AdminChannelProtocolSetup } from "@/components/admin/admin-channel-protocol-setup";
-import { applyModelProtocol, channelConnectionReady, channelProtocolDefinition, channelProtocolOptions, channelRequiresApiKey, emptyAdvancedConfig } from "@/lib/channel-protocol-registry";
+import { applyModelProtocol, channelConnectionReady, channelProtocolDefinition, channelProtocolOptions, channelRequiresApiKey, emptyAdvancedConfig, resolveChannelModelConfig } from "@/lib/channel-protocol-registry";
 
 export type ChannelHealthKind = SharedChannelHealthKind;
 export type ChannelHealthResult = SharedChannelHealthResult;
@@ -156,11 +156,11 @@ export function SystemChannelEditor({
                         {capabilitySummary ? <Tag className="m-0">{capabilitySummary}</Tag> : null}
                     </div>
                     <div className="mt-1 truncate text-xs text-stone-500 dark:text-stone-400">{channel.baseUrl || "未填写 Base URL"}</div>
-                    <div className="mt-1 text-xs text-stone-400 dark:text-stone-500">{requiresApiKey ? "填写名称、Base URL 和 API Key，再执行渠道检测。" : "填写名称和 Base URL 后即可执行渠道检测；当前协议无需 API Key。"}</div>
+                    <div className="mt-1 text-xs text-stone-400 dark:text-stone-500">{requiresApiKey ? "填写名称、Base URL 和 API Key 后可执行连接试运行。" : "填写名称和 Base URL 后可执行连接试运行；当前协议无需 API Key。"}</div>
                 </div>
                 <div className="flex shrink-0 flex-wrap items-center justify-end gap-1.5 sm:w-full sm:justify-start sm:gap-2 lg:w-auto lg:justify-end">
-                    <Button type="primary" size="small" aria-label="一键检测接口" title="一键检测接口" icon={<RefreshCw className="size-3.5" />} loading={testingKey === `${channel.id}:all`} onClick={onTestAllHealth}>
-                        <span className="hidden sm:inline">一键检测接口</span>
+                    <Button type="primary" size="small" aria-label="一键试运行接口" title="一键试运行接口" icon={<RefreshCw className="size-3.5" />} loading={testingKey === `${channel.id}:all`} onClick={onTestAllHealth}>
+                        <span className="hidden sm:inline">一键试运行</span>
                     </Button>
                     <Switch checkedChildren="启用" unCheckedChildren="停用" checked={channel.enabled} onChange={(enabled) => onChange({ enabled })} />
                     <Popconfirm title="删除这个接口渠道？" description="关联的逻辑模型绑定会同步移除；失去绑定的模型和默认值也会清理。" okText="删除" cancelText="取消" onConfirm={onDelete}>
@@ -287,23 +287,23 @@ export function SystemChannelEditor({
                             mode="tags"
                             maxTagCount="responsive"
                             value={channel.models}
-                            placeholder="检测会自动填，也可以手动输入模型名"
+                            placeholder="同步模型目录或手动输入模型名"
                             onChange={(models) => onChange({ models })}
                         />
                     </LabeledControl>
                     {detectedCapabilities.has("text") ? (
                         <LabeledControl label="文本模型">
-                            <Input value={advanced.textModel} placeholder="检测后自动填" onChange={(event) => updateAdvanced({ textModel: event.target.value })} />
+                            <Input value={advanced.textModel} placeholder="可手动填写兜底文本模型" onChange={(event) => updateAdvanced({ textModel: event.target.value })} />
                         </LabeledControl>
                     ) : null}
                     {detectedCapabilities.has("image") ? (
                         <LabeledControl label="图片模型">
-                            <Input value={advanced.imageModel} placeholder="检测后自动填" onChange={(event) => updateAdvanced({ imageModel: event.target.value })} />
+                            <Input value={advanced.imageModel} placeholder="可手动填写兜底图片模型" onChange={(event) => updateAdvanced({ imageModel: event.target.value })} />
                         </LabeledControl>
                     ) : null}
                     {detectedCapabilities.has("video") ? (
                         <LabeledControl label="视频模型">
-                            <Input value={advanced.videoModel} placeholder="检测后自动填" onChange={(event) => updateAdvanced({ videoModel: event.target.value })} />
+                            <Input value={advanced.videoModel} placeholder="可手动填写兜底视频模型" onChange={(event) => updateAdvanced({ videoModel: event.target.value })} />
                         </LabeledControl>
                     ) : null}
                     <ModelRouteConfigEditor channel={channel} advanced={advanced} onChange={updateAdvanced} />
@@ -363,23 +363,10 @@ export function SystemChannelEditor({
                                     <Input.TextArea value={advanced.referenceRule} rows={3} placeholder="例如：参考图必须是公网 URL；单图字段 image，多图字段 images。" onChange={(event) => updateAdvanced({ referenceRule: event.target.value })} />
                                 </LabeledControl>
                             </div>
-                            <div className="md:col-span-2">
-                                <div className="mb-1.5 text-xs font-medium text-stone-500 dark:text-stone-400">参考素材能力</div>
-                                <div className="flex flex-wrap gap-4">
-                                    <Checkbox checked={advanced.supportsReferenceImage} onChange={(event) => updateAdvanced({ supportsReferenceImage: event.target.checked })}>
-                                        支持参考图
-                                    </Checkbox>
-                                    <Checkbox checked={advanced.supportsReferenceVideo} onChange={(event) => updateAdvanced({ supportsReferenceVideo: event.target.checked })}>
-                                        支持参考视频
-                                    </Checkbox>
-                                    <Checkbox checked={advanced.supportsReferenceAudio} onChange={(event) => updateAdvanced({ supportsReferenceAudio: event.target.checked })}>
-                                        支持参考音频
-                                    </Checkbox>
-                                </div>
-                            </div>
+                            <div className="md:col-span-2 text-xs leading-5 text-stone-500 dark:text-stone-400">参考素材能力请在下方“模型级路由”中按模型配置；渠道能力会自动汇总，不需要重复填写。</div>
                         </>
                     ) : (
-                        <div className="md:col-span-2 text-xs leading-5 text-stone-500 dark:text-stone-400">当前协议的路径、请求字段、结果字段和参考素材能力由协议注册表固定；如需非标准字段，请在模型级路由中选择“自定义协议”。</div>
+                        <div className="md:col-span-2 text-xs leading-5 text-stone-500 dark:text-stone-400">当前协议的路径、请求字段和结果字段由协议注册表固定；模型的参考素材能力仍可在模型级路由中调整。</div>
                     )}
                     <div className="flex flex-wrap gap-2 md:col-span-2">
                         <Button size="small" icon={<RefreshCw className="size-3.5" />} loading={fetching} onClick={onFetchModels}>
@@ -387,7 +374,7 @@ export function SystemChannelEditor({
                         </Button>
                         {healthKinds.map((kind) => (
                             <Button key={kind} size="small" loading={testingKey === `${channel.id}:${kind}`} onClick={() => onTestHealth(kind)}>
-                                单测{healthKindLabel(kind)}
+                                试运行{healthKindLabel(kind)}
                             </Button>
                         ))}
                     </div>
@@ -404,7 +391,7 @@ function ModelRouteConfigEditor({ channel, advanced, onChange }: { channel: Syst
     const selectedModel = models.some((model) => normalizeModelId(model) === normalizeModelId(selected)) ? models.find((model) => normalizeModelId(model) === normalizeModelId(selected)) || "" : models[0] || "";
     const key = normalizeModelId(selectedModel);
     const stored = key ? advanced.modelConfigs?.[key] : undefined;
-    const config: SystemChannelModelConfig | undefined = selectedModel ? stored || { capability: channelModelCapability(channel, selectedModel) } : undefined;
+    const config: SystemChannelModelConfig | undefined = selectedModel ? stored || resolveChannelModelConfig(advanced, selectedModel) || { capability: channelModelCapability(channel, selectedModel) } : undefined;
     const selectedProtocol = config?.protocol || advanced.protocol;
     const definition = channelProtocolDefinition(selectedProtocol);
     const showImageEditPath = config?.capability === "image";
@@ -539,13 +526,13 @@ function ModelRouteConfigEditor({ channel, advanced, onChange }: { channel: Syst
                                 </LabeledControl>
                             </div>
                             <div className="sm:col-span-2 flex flex-wrap gap-4 text-xs text-stone-600 dark:text-stone-300">
-                                <Checkbox disabled={definition.strict} checked={config.supportsReferenceImage === true} onChange={(event) => update({ supportsReferenceImage: event.target.checked })}>
+                                <Checkbox checked={config.supportsReferenceImage === true} onChange={(event) => update({ supportsReferenceImage: event.target.checked })}>
                                     参考图片
                                 </Checkbox>
-                                <Checkbox disabled={definition.strict} checked={config.supportsReferenceVideo === true} onChange={(event) => update({ supportsReferenceVideo: event.target.checked })}>
+                                <Checkbox checked={config.supportsReferenceVideo === true} onChange={(event) => update({ supportsReferenceVideo: event.target.checked })}>
                                     参考视频
                                 </Checkbox>
-                                <Checkbox disabled={definition.strict} checked={config.supportsReferenceAudio === true} onChange={(event) => update({ supportsReferenceAudio: event.target.checked })}>
+                                <Checkbox checked={config.supportsReferenceAudio === true} onChange={(event) => update({ supportsReferenceAudio: event.target.checked })}>
                                     参考音频
                                 </Checkbox>
                             </div>
@@ -564,10 +551,13 @@ function channelCapabilitySummary(channel: SystemModelChannel) {
         LogicalModelCapability,
         number
     >);
-    return modelCapabilityOptions
+    const modelSummary = modelCapabilityOptions
         .filter(({ value }) => counts[value])
         .map(({ value }) => `${capabilityLabel(value)} ${counts[value]}`)
         .join(" · ");
+    const references = channelReferenceCapabilities(channel);
+    const referenceSummary = [references.supportsReferenceImage ? "参考图" : "", references.supportsReferenceVideo ? "参考视频" : "", references.supportsReferenceAudio ? "参考音频" : ""].filter(Boolean).join("/");
+    return [modelSummary, referenceSummary].filter(Boolean).join(" · ");
 }
 
 export function channelHealthKinds(channel: SystemModelChannel): ChannelHealthKind[] {
@@ -577,26 +567,30 @@ export function channelHealthKinds(channel: SystemModelChannel): ChannelHealthKi
 }
 
 function ChannelCapabilitySummary({ channel, results }: { channel: SystemModelChannel; results: ChannelHealthResult[] }) {
-    const advanced = channel.advancedConfig || createDefaultChannelAdvancedConfig();
     const credentialsReady = channelConnectionReady(channel);
     const verifiedResults = credentialsReady ? results : [];
     const text = verifiedResults.find((result) => result.kind === "text");
     const image = verifiedResults.find((result) => result.kind === "image");
     const video = verifiedResults.find((result) => result.kind === "video");
     const audio = verifiedResults.find((result) => result.kind === "audio");
-    const needsPublicReference = /公网|public|localhost|NEXT_PUBLIC_SITE_URL/i.test(advanced.referenceRule || video?.referenceHint || "");
     const pending = credentialsReady ? undefined : "未配置";
     const capabilities = new Set(channelHealthKinds(channel));
+    const imageReferences = channelReferenceCapabilities(channel, "image");
+    const videoReferences = channelReferenceCapabilities(channel, "video");
     const items: Array<{ label: string; value: string; tone: "default" | "green" | "red" }> = [];
     if (capabilities.has("text")) items.push({ label: "文本", value: pending || healthStateText(text), tone: pending ? "default" : healthStateTone(text) });
     if (capabilities.has("image")) {
         items.push({ label: "生图", value: pending || healthStateText(image), tone: pending ? "default" : healthStateTone(image) });
-        items.push({ label: "图生图", value: pending || referenceImageText(image, advanced, needsPublicReference), tone: pending ? "default" : referenceImageTone(image) });
+        items.push({ label: "图生图", value: imageReferences.supportsReferenceImage ? "支持" : "不支持", tone: imageReferences.supportsReferenceImage ? "green" : "default" });
     }
     if (capabilities.has("video")) {
         items.push({ label: "视频", value: pending || healthStateText(video), tone: pending ? "default" : healthStateTone(video) });
-        items.push({ label: "图生视频", value: pending || referenceVideoText(video, advanced, needsPublicReference), tone: pending ? "default" : referenceImageTone(video) });
-        items.push({ label: "参考视频/音频", value: pending || referenceMediaText(video, advanced), tone: pending ? "default" : video && !video.ok ? "red" : "default" });
+        items.push({ label: "图生视频", value: videoReferences.supportsReferenceImage ? "支持" : "不支持", tone: videoReferences.supportsReferenceImage ? "green" : "default" });
+        items.push({
+            label: "参考视频/音频",
+            value: videoReferences.supportsReferenceVideo || videoReferences.supportsReferenceAudio ? "支持" : "不支持",
+            tone: videoReferences.supportsReferenceVideo || videoReferences.supportsReferenceAudio ? "green" : "default",
+        });
     }
     if (capabilities.has("audio")) items.push({ label: "音频", value: pending || healthStateText(audio), tone: pending ? "default" : healthStateTone(audio) });
     if (!items.length) return null;
@@ -615,40 +609,13 @@ function ChannelCapabilitySummary({ channel, results }: { channel: SystemModelCh
 }
 
 function healthStateText(result?: ChannelHealthResult) {
-    if (!result) return "未检测";
+    if (!result) return "未试运行";
     return result.ok ? "可用" : "需检查";
 }
 
 function healthStateTone(result?: ChannelHealthResult) {
     if (!result) return "default";
     return result.ok ? "green" : "red";
-}
-
-function referenceImageText(result: ChannelHealthResult | undefined, advanced: SystemChannelAdvancedConfig, needsPublicReference: boolean) {
-    if (!result) return "未检测";
-    if (!result.ok) return "需检查";
-    if (!advanced.supportsReferenceImage) return "不支持";
-    if (result.referenceImageTest) return result.referenceImageTest.ok ? "可用" : "需检查";
-    return needsPublicReference ? "需公网图，未实测" : "未实测";
-}
-
-function referenceVideoText(result: ChannelHealthResult | undefined, advanced: SystemChannelAdvancedConfig, needsPublicReference: boolean) {
-    if (!result) return "未检测";
-    if (!result.ok) return "需检查";
-    if (!advanced.supportsReferenceImage) return "不支持";
-    return needsPublicReference ? "需公网图，未实测" : "未实测";
-}
-
-function referenceImageTone(result: ChannelHealthResult | undefined) {
-    if (result && !result.ok) return "red";
-    if (result?.referenceImageTest) return result.referenceImageTest.ok ? "green" : "red";
-    return "default";
-}
-
-function referenceMediaText(result: ChannelHealthResult | undefined, advanced: SystemChannelAdvancedConfig) {
-    if (!result) return "未检测";
-    if (!result.ok) return "需检查";
-    return advanced.supportsReferenceVideo || advanced.supportsReferenceAudio ? "未实测" : "不支持";
 }
 
 function ChannelHealthResultRow({ result }: { result: ChannelHealthResult }) {

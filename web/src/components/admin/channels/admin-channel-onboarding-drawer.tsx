@@ -31,7 +31,7 @@ type Props = {
     onPersist: (settings: ChannelWorkspaceSettings, successText: string) => Promise<boolean>;
 };
 
-const steps = [{ title: "选择协议" }, { title: "连接上游" }, { title: "获取模型" }, { title: "验证能力" }, { title: "绑定模型" }, { title: "确认启用" }];
+const steps = [{ title: "选择协议" }, { title: "连接上游" }, { title: "获取模型" }, { title: "连接试运行" }, { title: "绑定模型" }, { title: "确认启用" }];
 
 export function AdminChannelOnboardingDrawer({ open, initialProtocol, settings, fetchingModelId, testingChannelKey, healthResults, saving, onClose, onChange, onFetchModels, onTestAll, onPersist }: Props) {
     const { message, modal } = App.useApp();
@@ -43,7 +43,6 @@ export function AdminChannelOnboardingDrawer({ open, initialProtocol, settings, 
     const { upstreamModel: selectedUpstreamModel, logicalId: selectedLogicalId, newLogicalId, newLogicalName } = bindingDraft;
     const channel = settings.systemChannels.find((item) => item.id === draftId);
     const validations = draftId ? channelHealthEntries(draftId, healthResults, channel?.healthResults) : [];
-    const verified = validations.some(({ result }) => result.ok);
     const bound = Boolean(channel && settings.logicalModels.some((model) => model.bindings.some((binding) => binding.channelId === channel.id)));
 
     useEffect(() => {
@@ -97,7 +96,7 @@ export function AdminChannelOnboardingDrawer({ open, initialProtocol, settings, 
         if (await onPersist(next, "渠道草稿已保存")) onClose();
     };
     const enableChannel = async () => {
-        if (!channel || !verified || !bound) return;
+        if (!channel || !bound) return;
         const next = { ...settings, systemChannels: settings.systemChannels.map((item) => (item.id === channel.id ? { ...item, enabled: true } : item)) };
         onChange(next);
         if (await onPersist(next, "渠道已启用")) onClose();
@@ -183,7 +182,7 @@ export function AdminChannelOnboardingDrawer({ open, initialProtocol, settings, 
                                 {step === 0 ? "开始配置" : "下一步"}
                             </Button>
                         ) : (
-                            <Button type="primary" loading={saving} disabled={!verified || !bound} icon={<Check className="size-4" />} onClick={() => void enableChannel()}>
+                            <Button type="primary" loading={saving} disabled={!bound} icon={<Check className="size-4" />} onClick={() => void enableChannel()}>
                                 启用渠道
                             </Button>
                         )}
@@ -394,11 +393,11 @@ function ValidationStep({ channel, entries, testing, onTest }: { channel: System
         <div>
             <div className="flex flex-wrap items-center justify-between gap-2 border-b border-stone-200 pb-3 dark:border-stone-800">
                 <div>
-                    <div className="text-sm font-semibold text-stone-950 dark:text-stone-100">能力验证</div>
-                    <div className="mt-1 text-xs text-stone-500 dark:text-stone-400">检测会调用真实上游，图片、视频或音频测试可能产生费用。</div>
+                    <div className="text-sm font-semibold text-stone-950 dark:text-stone-100">连接与试运行</div>
+                    <div className="mt-1 text-xs text-stone-500 dark:text-stone-400">试运行只检查连接和真实调用结果，不会修改模型能力；图片、视频或音频调用可能产生费用。</div>
                 </div>
                 <Button type="primary" icon={<FlaskConical className="size-4" />} loading={testing} onClick={onTest}>
-                    执行全部检测
+                    执行全部试运行
                 </Button>
             </div>
             <div className="mt-4 divide-y divide-stone-200 border-y border-stone-200 dark:divide-stone-800 dark:border-stone-800">
@@ -408,9 +407,9 @@ function ValidationStep({ channel, entries, testing, onTest }: { channel: System
                         <div key={kind} className="flex items-center justify-between gap-3 py-3">
                             <div>
                                 <div className="text-sm font-medium text-stone-900 dark:text-stone-100">{capabilityLabel(kind)}</div>
-                                <div className="mt-0.5 text-xs text-stone-500 dark:text-stone-400">{result?.model || "等待检测"}</div>
+                                <div className="mt-0.5 text-xs text-stone-500 dark:text-stone-400">{result?.model || "等待试运行"}</div>
                             </div>
-                            <Tag color={result ? (result.ok ? "success" : "error") : "default"}>{result ? (result.ok ? "通过" : "失败") : "未检测"}</Tag>
+                            <Tag color={result ? (result.ok ? "success" : "error") : "default"}>{result ? (result.ok ? "通过" : "失败") : "未试运行"}</Tag>
                         </div>
                     );
                 })}
@@ -423,7 +422,7 @@ function ValidationStep({ channel, entries, testing, onTest }: { channel: System
                     message="部分能力需要检查"
                     description={entries
                         .filter(({ result }) => !result.ok)
-                        .map(({ result }) => result.error || `${capabilityLabel(result.kind)}检测失败`)
+                        .map(({ result }) => result.error || `${capabilityLabel(result.kind)}试运行失败`)
                         .join("；")}
                 />
             ) : null}
@@ -516,7 +515,7 @@ function ReviewStep({ channel, settings, validations }: { channel: SystemModelCh
                 <ReviewValue label="协议" value={channelProtocolDefinition(channel.advancedConfig?.protocol || "auto").label} />
                 <ReviewValue label="Base URL" value={channel.baseUrl} />
                 <ReviewValue label="上游模型" value={`${channel.models.length} 个`} />
-                <ReviewValue label="能力检测" value={`${validations.filter(({ result }) => result.ok).length}/${Math.max(validations.length, 1)} 通过`} />
+                <ReviewValue label="连接试运行" value={validations.length ? `${validations.filter(({ result }) => result.ok).length}/${validations.length} 通过` : "未执行（可选）"} />
                 <ReviewValue label="逻辑绑定" value={`${bindings.length} 个`} />
             </div>
             <div>
@@ -530,7 +529,7 @@ function ReviewStep({ channel, settings, validations }: { channel: SystemModelCh
                     ))}
                 </div>
             </div>
-            {!validations.some(({ result }) => result.ok) ? <Alert type="warning" showIcon message="尚未通过能力检测" description="可以保存为停用草稿；通过至少一项真实能力检测后才能启用。" /> : null}
+            {!validations.some(({ result }) => result.ok) ? <Alert type="info" showIcon message="尚未执行成功的连接试运行" description="模型能力以模型级配置为准；试运行是可选检查，不影响启用渠道。" /> : null}
             <div className="flex items-start gap-2 text-xs leading-5 text-stone-500 dark:text-stone-400">
                 <CircleDollarSign className="mt-0.5 size-4 shrink-0" />
                 <span>用户积分仍按逻辑模型配置；上游模型名只用于真实请求。</span>

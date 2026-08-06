@@ -83,6 +83,18 @@ describe("channel protocol registry", () => {
         expect(channelProtocolValidationErrors(configured)).toEqual([]);
     });
 
+    it("keeps model-level reference capability overrides in strict protocols", () => {
+        const config = normalizeStrictProtocolModelConfig({ capability: "video", protocol: "openai", supportsReferenceImage: false }, "openai");
+
+        expect(config).toMatchObject({ capability: "video", createPath: "/videos", supportsReferenceImage: false });
+        expect(
+            channelProtocolValidationErrors({
+                ...applyChannelProtocol({ ...channel, models: ["video-one"] }, "openai"),
+                advancedConfig: { ...applyChannelProtocol({ ...channel, models: ["video-one"] }, "openai").advancedConfig!, modelConfigs: { "video-one": config } },
+            }),
+        ).toEqual([]);
+    });
+
     it("rejects unsafe custom authentication header names", () => {
         const configured = applyChannelProtocol(channel, "custom");
         configured.advancedConfig = { ...configured.advancedConfig!, authMode: "custom-header", authHeader: "Cookie" };

@@ -343,6 +343,20 @@ describe("video generation candidate failover", () => {
         expect(JSON.parse(String(init.body))).toEqual({ model: "happyhorse-1.1-t2v", prompt: "A test video", duration: 5, ratio: "16:9", resolution: "720P", seed: 0 });
     });
 
+    it("uses the Happy Horse request contract for New API image-to-video models", async () => {
+        mocks.getAuthSettings.mockResolvedValue(newApiVideoSettings("newapi", "happyhorse-1.1-i2v"));
+        mocks.fetchInternalApi.mockResolvedValue(json({ id: "upstream-happyhorse-image", status: "queued" }));
+        const reference = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=";
+
+        const response = await POST(request({ model: "video", videoSeconds: "5", size: "16:9", vquality: "720" }, [{ type: "image", url: reference }]));
+        const [url, init] = mocks.fetchInternalApi.mock.calls[0] as [string, RequestInit];
+
+        expect(response.status).toBe(200);
+        expect(url).toContain("/api/ai/system/one/videos");
+        expect(new Headers(init.headers).get("content-type")).toBe("application/json");
+        expect(JSON.parse(String(init.body))).toEqual({ model: "happyhorse-1.1-i2v", prompt: expect.stringContaining("A test video"), first_image: reference, duration: 5, resolution: "720P", seed: 0 });
+    });
+
     it("keeps New API image-to-video requests as multipart form data", async () => {
         mocks.getAuthSettings.mockResolvedValue(newApiVideoSettings());
         mocks.fetchInternalApi.mockResolvedValue(json({ id: "upstream-new-api-image", status: "queued" }));

@@ -244,25 +244,26 @@ export async function createUpstream(
     const globalPreset = globalAiOpcVideoPreset(channel.advancedConfig, channel.model);
     const multipartTemplate = channel.advancedConfig?.requestTemplate?.trim().toLowerCase().startsWith("multipart/form-data") === true;
     const newApiTextToVideoJson = channel.channelProtocol === "newapi" && multipartTemplate && images.length === 0;
-    const newApiHappyHorsePreset = newApiTextToVideoJson ? getGlobalAiOpcPresetForModel(channel.model) : undefined;
-    const multipart = multipartTemplate && !newApiTextToVideoJson;
-    const jsonTemplate = newApiTextToVideoJson ? undefined : channel.advancedConfig?.requestTemplate;
-    const jsonDefaults =
-        newApiHappyHorsePreset?.requestMode === "happyhorse-t2v"
-            ? buildGlobalAiOpcVideoRequest(newApiHappyHorsePreset, {
-                  model: channel.model,
-                  prompt,
-                  duration: values.duration as number,
-                  ratio: values.ratio as string,
-                  resolution: values.resolution as string,
-                  images: [],
-                  videos: [],
-                  audios: [],
-                  generateAudio: raw.videoGenerateAudio !== "false",
-              })
-            : newApiTextToVideoJson
-              ? { model: channel.model, prompt, seconds: String(values.seconds), size: `${dimensions.width}x${dimensions.height}` }
-              : defaults;
+    const newApiModelPreset = channel.channelProtocol === "newapi" && multipartTemplate ? getGlobalAiOpcPresetForModel(channel.model) : undefined;
+    const newApiHappyHorsePreset = newApiModelPreset?.requestMode?.startsWith("happyhorse-") ? newApiModelPreset : undefined;
+    const newApiJson = Boolean(newApiHappyHorsePreset) || newApiTextToVideoJson;
+    const multipart = multipartTemplate && !newApiJson;
+    const jsonTemplate = newApiJson ? undefined : channel.advancedConfig?.requestTemplate;
+    const jsonDefaults = newApiHappyHorsePreset
+        ? buildGlobalAiOpcVideoRequest(newApiHappyHorsePreset, {
+              model: channel.model,
+              prompt,
+              duration: values.duration as number,
+              ratio: values.ratio as string,
+              resolution: values.resolution as string,
+              images,
+              videos,
+              audios,
+              generateAudio: raw.videoGenerateAudio !== "false",
+          })
+        : newApiTextToVideoJson
+          ? { model: channel.model, prompt, seconds: String(values.seconds), size: `${dimensions.width}x${dimensions.height}` }
+          : defaults;
     const payload = multipart
         ? undefined
         : channel.advancedConfig?.protocol === "seedance-special"

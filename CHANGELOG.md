@@ -9,7 +9,7 @@
 - [修复] 渠道参考素材能力改为按上游模型独立配置并由启用模型动态汇总；工作台按实际候选模型筛选图生视频等能力，连接试运行不再推断或回写能力，也不再阻止渠道启用。统一创作入口的 Skill 分类按钮恢复正常点击筛选。
 - [修复] 创作 Agent 达到单用户并发上限或短时限流时改为保留原请求并自动排队续提，不再把容量不足直接显示为失败并要求用户手动重试。
 - [修复] New API 的 OpenAI 视频模型在无参考图时改用 JSON 创建任务并显式携带模型名；图生视频与官方 OpenAI Videos 继续使用 multipart，避免 Seedance 2.0 文生视频被上游误判为缺少模型。
-- [修复] New API 下的 Happy Horse 文生视频按模型族发送大写清晰度及其专用参数，不再把 OpenAI Videos 的像素尺寸作为 `resolution` 导致 1.1 模型拒绝请求。
+- [修复] New API 下的 Happy Horse 文生视频和图生视频按模型族发送专用 JSON 参数；图生视频使用 `first_image`，不再误用 OpenAI Videos 的 multipart `input_reference`，清晰度统一使用模型要求的大写档位。
 
 ## v0.0.3
 

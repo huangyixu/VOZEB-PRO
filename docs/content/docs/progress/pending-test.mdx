@@ -11,7 +11,9 @@ description: VOZEB PRO 当前版本需要人工或真实环境确认的事项
 
 ## 本轮修复待验收
 
-- New API 渠道调用 OpenAI 视频协议时会保留顶层渠道身份：通用无参考图文生视频使用包含 `model`、`prompt`、字符串 `seconds` 和像素 `size` 的 JSON；Happy Horse 文生视频按专用契约发送 `duration`、`ratio`、`resolution` 和 `seed`，其中清晰度为 `720P/1080P`。Happy Horse 图生视频与其他带参考图的 New API 模型遵循 `/videos` 的 multipart 契约，把唯一参考图上传为 `input_reference` 文件；官方 OpenAI Videos 继续使用相同 multipart 文件上传。专项回归已覆盖通用 New API、Happy Horse 1.1 文生/图生视频、参考图、官方 OpenAI 和模型级协议覆盖；仍需更新生产容器后用现有 New API 配置完成真实调用。
+- 短剧第一阶段“AI 提取内容结构”和审核后的视觉方案生成已改为持久化异步任务：创建接口会立即返回任务 ID，模型调用由生成 Worker 执行，页面以短请求轮询并在成功、失败、等待超时或上游状态待确认时退出加载态。相同用户、项目、剧集、阶段和输入会复用活跃或成功任务，失败或上游状态待确认后再次点击会创建隔离的新尝试，并优先使用上一次未取得明确结果以外的备用渠道；Chat Completions、Responses、Gemini 与 Claude 会发送短剧专用结构化工具定义，输出截断、空内容结构或视觉镜头缺失会撤销本次积分/套餐次数并切换备用渠道。页面还会拒绝覆盖等待期间已修改的剧本或创作方向，并按持久化审核状态恢复阶段。自动化已覆盖异步路由、任务复用/重试、工具参数、截断退款、备用渠道、HTML 504、轮询取消和总超时；仍需更新生产 App/Worker 后使用真实长剧本确认首次内容提取不再出现 60 秒 504，刷新后镜头和审核阶段保持一致。
+
+- New API 渠道调用 OpenAI 视频协议时会保留顶层渠道身份：通用无参考图文生视频使用包含 `model`、`prompt`、字符串 `seconds` 和像素 `size` 的 JSON；Happy Horse 文生视频按专用契约发送 `duration`、`ratio`、`resolution` 和 `seed`，其中清晰度为 `720P/1080P`。Happy Horse 图生视频与其他带参考图的 New API 模型遵循 `/videos` 的 multipart 契约，把唯一参考图上传为 `input_reference` 文件；服务器内部转发使用原生 Fetch 生成匹配的 multipart 边界，确保 `model`、`prompt`、`seconds`、`size` 和参考文件均被网关识别。官方 OpenAI Videos 继续使用相同 multipart 文件上传。专项回归已覆盖通用 New API、Happy Horse 1.1 文生/图生视频、参考图、官方 OpenAI 和模型级协议覆盖；仍需更新生产容器后用现有 New API 配置完成真实调用。
 
 - v0.0.3 发布镜像在一台 Linux x64 服务器出现 `libvips-cpp.so.8.18.3` 缺失，导致生成运维摘要、资源统计和 Worker 同时返回 500；这与数据库参数无关。生产 Dockerfile 已改为从 pnpm 依赖树实体化当前 CPU 架构对应的 Sharp/libvips 原生包，并在最终镜像构建阶段直接加载 Sharp，缺库会立即阻断 amd64 或 arm64 镜像发布。部署契约测试已覆盖原生包收集、复制和运行时检查；仍需等待新镜像构建后在问题服务器重新拉取，确认两个运维接口、Worker 心跳和图片 WebP 预览恢复。
 

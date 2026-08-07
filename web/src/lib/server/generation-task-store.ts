@@ -132,6 +132,26 @@ export async function getStoredGenerationTaskByRequest<T>(type: GenerationTaskTy
     return (tasks.find((task) => sameTaskRequest(task, type, userId, requestId, attempt) && task.expiresAt > Date.now())?.payload as T | undefined) || null;
 }
 
+export async function getLatestStoredGenerationTaskByRequest<T>(type: GenerationTaskType, userId: string, clientRequestId: string): Promise<T | null> {
+    const requestId = cleanContextText(clientRequestId);
+    if (!requestId) return null;
+    if (getDatabaseProvider() === "postgres") {
+        await ensurePostgresSchema();
+        const result = await postgresQuery<{ payload: T }>("SELECT payload FROM generation_tasks WHERE user_id = $1 AND task_type = $2 AND client_request_id = $3 AND expires_at > now() ORDER BY COALESCE(attempt_no, 0) DESC, updated_at DESC LIMIT 1", [
+            userId,
+            type,
+            requestId,
+        ]);
+        return result.rows[0]?.payload || null;
+    }
+    const tasks = await readFileTasks();
+    return (
+        (tasks
+            .filter((task) => task.type === type && task.userId === userId && task.clientRequestId === requestId && task.expiresAt > Date.now())
+            .sort((left, right) => normalizedAttemptNo(right.attemptNo) - normalizedAttemptNo(left.attemptNo) || right.updatedAt - left.updatedAt)[0]?.payload as T | undefined) || null
+    );
+}
+
 export async function listStoredGenerationTasks<T>(type: GenerationTaskType, userId: string, limit = 20): Promise<T[]> {
     if (getDatabaseProvider() === "postgres") {
         await ensurePostgresSchema();

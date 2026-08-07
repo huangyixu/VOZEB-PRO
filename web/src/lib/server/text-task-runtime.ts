@@ -7,11 +7,12 @@ import { finishGenerationAttempt, startGenerationAttempt } from "@/lib/server/ge
 import { getTextTask, transitionTextTask, type TextTask, type TextTaskConfig } from "@/lib/server/text-task-store";
 import { updateTextTask } from "@/lib/server/text-task-store";
 import type { AiTextMessage } from "@/types/ai";
-import { hasSystemAiCharge, readSystemAiBilling, systemAiBillingHeaders } from "@/lib/server/system-ai-billing";
+import { hasSystemAiCharge, readSystemAiBilling, systemAiBillingHeaders, systemAiIdempotencyKey } from "@/lib/server/system-ai-billing";
 import { resolveModelRequestTimeoutMs } from "@/lib/server/model-request-policy";
 import { buildProviderRequest, isProviderBusinessError, providerQueryPaths, readProviderError, readProviderString } from "@/lib/server/provider-task-config";
 import { maintenanceWorkerContextHeaders } from "@/lib/server/maintenance-auth";
 import { GenerationSubmissionSafeFailure, GenerationSubmissionUncertainError, generationSubmissionResponseError, generationSubmissionUncertainError } from "@/lib/server/generation-submission-error";
+import { normalizeTextTaskResult } from "@/lib/server/text-task-result";
 import { resolveTextProtocol, type ResolvedTextProtocol } from "@/lib/server/text-protocol-resolver";
 
 configureServerProxyDispatcher();
@@ -27,30 +28,41 @@ export type TextTaskStep = { state: "pending"; status: string; upstreamTaskId: s
 type ResponseInputContent = { type: "input_text"; text: string } | { type: "input_image"; image_url: string };
 type ResponseInputItem = { role: "system" | "user" | "assistant"; content: string | ResponseInputContent[] };
 type ResponseApiPayload = {
-    output?: Array<{ type?: string; content?: Array<{ type?: string; text?: string }> }>;
+    status?: string;
+    incomplete_details?: { reason?: string };
+    output?: Array<{ type?: string; name?: string; arguments?: unknown; content?: Array<{ type?: string; text?: string }> }>;
     output_text?: string;
     error?: { message?: string };
     code?: number;
     msg?: string;
 };
 type ChatCompletionPayload = {
-    choices?: Array<{ message?: { content?: string | Array<{ type?: string; text?: string }> } }>;
+    choices?: Array<{
+        finish_reason?: string;
+        message?: {
+            content?: string | Array<{ type?: string; text?: string }>;
+            tool_calls?: Array<{ function?: { name?: string; arguments?: unknown } }>;
+            function_call?: { name?: string; arguments?: unknown };
+        };
+    }>;
     error?: { message?: string };
     code?: number;
     msg?: string;
 };
 type GeminiPart = {
     text?: string;
+    functionCall?: { name?: string; args?: unknown };
     inlineData?: { mimeType?: string; data?: string };
     fileData?: { mimeType?: string; fileUri?: string };
 };
 type GeminiPayload = {
-    candidates?: Array<{ content?: { parts?: GeminiPart[] } }>;
+    candidates?: Array<{ finishReason?: string; content?: { parts?: GeminiPart[] } }>;
     error?: { message?: string };
     promptFeedback?: { blockReason?: string };
 };
 type ClaudePayload = {
-    content?: Array<{ type?: string; text?: string }>;
+    stop_reason?: string;
+    content?: Array<{ type?: string; text?: string; name?: string; input?: unknown }>;
     error?: { message?: string };
 };
 
@@ -58,13 +70,25 @@ export async function runTextTaskStep(task: TextTask, origin: string, cookie: st
     const current = await getTextTask(task.id);
     if (!current || current.status === "success") return { state: "completed" };
     if (current.status === "error" || current.status === "cancelled") return { state: "failed", error: current.error || "文本任务已结束" };
-    const running = current.status === "pending" ? await transitionTextTask(current, ["pending"], { status: "running" }) : current;
+    let running = current.status === "pending" ? await transitionTextTask(current, ["pending"], { status: "running" }) : current;
     if (!running) return { state: "failed", error: "文本任务状态已变化" };
-    if (running.upstream?.id) return queryCustomTextTaskStep(running, origin, cookie);
-
-    const candidates = [running.config, ...(running.candidateConfigs || [])];
     let attempts = running.attempts || [];
+    let candidates = [running.config, ...(running.candidateConfigs || [])];
     let latestError: unknown;
+    if (running.upstream?.id) {
+        try {
+            return await queryCustomTextTaskStep(running, origin, cookie);
+        } catch (error) {
+            if (!(error instanceof GenerationSubmissionSafeFailure)) throw error;
+            latestError = error;
+            const message = toSafeGenerationErrorMessage(error, "文本生成失败");
+            attempts = finishGenerationAttempt(attempts, running.attemptNo || attempts.at(-1)?.attemptNo || 1, { status: "failed", error: message, pointsCost: running.billing?.pointsCost, pointsRecordId: running.billing?.pointsRecordId });
+            candidates = running.candidateConfigs || [];
+            await updateTextTask(task.id, { candidateConfigs: candidates, attempts, upstream: undefined, billing: undefined });
+            running = { ...running, upstream: undefined, billing: undefined, candidateConfigs: candidates, attempts };
+        }
+    }
+
     for (const [index, config] of candidates.entries()) {
         const started = startGenerationAttempt(attempts, { channelId: config.channelId, model: generationModelId(config), capability: "text" });
         attempts = started.attempts;
@@ -78,7 +102,7 @@ export async function runTextTaskStep(task: TextTask, origin: string, cookie: st
                 await updateTextTask(task.id, { upstream: { id: result.upstreamTaskId, createPath: result.createPath }, billing });
                 return { state: "pending", status: result.status, upstreamTaskId: result.upstreamTaskId, createPath: result.createPath };
             }
-            return completeTextTask(candidateTask, result.content, result, attempts);
+            return await completeTextTask(candidateTask, result.content, result, attempts);
         } catch (error) {
             latestError = error;
             const message = toSafeGenerationErrorMessage(error, "文本生成失败");
@@ -108,7 +132,7 @@ async function runOpenAiResponsesTask(task: TextTask, origin: string, cookie: st
     const response = await submissionFetch(config, taskUrl(config, protocol.path, origin), {
         method: "POST",
         headers,
-        body: JSON.stringify({ model: config.model, input: toResponseInput(withSystemMessage(config, task.messages)) }),
+        body: JSON.stringify({ model: config.model, input: toResponseInput(withSystemMessage(config, task.messages)), ...responsesStructuredOutput(config.structuredOutput) }),
         cache: "no-store",
     });
     if (!response.ok) {
@@ -125,7 +149,7 @@ async function runOpenAiResponsesTask(task: TextTask, origin: string, cookie: st
         await refundChargedTextResponse(task, response.headers);
         throw new GenerationSubmissionSafeFailure(message);
     }
-    const content = parseOpenAiContent(payload);
+    const content = parseOpenAiContent(payload, config.structuredOutput?.name);
     if (!content.trim()) {
         await refundChargedTextResponse(task, response.headers);
         throw new GenerationSubmissionSafeFailure("文本模型没有返回有效内容");
@@ -138,7 +162,7 @@ async function createCustomTextTaskStep(task: TextTask, origin: string, cookie: 
     const createPath = protocol.path;
     const messages = toChatMessages(withSystemMessage(config, task.messages));
     const prompt = messages
-        .filter((message) => message.role === "user")
+        .filter((message) => (config.structuredOutput ? message.role !== "assistant" : message.role === "user"))
         .map((message) => readMessageText(message.content))
         .filter(Boolean)
         .join("\n\n");
@@ -205,7 +229,7 @@ async function runOpenAiChatCompletionTask(task: TextTask, origin: string, cooki
     const response = await submissionFetch(config, taskUrl(config, protocol.path, origin), {
         method: "POST",
         headers,
-        body: JSON.stringify({ model: config.model, messages: toChatMessages(withSystemMessage(config, task.messages)) }),
+        body: JSON.stringify({ model: config.model, messages: toChatMessages(withSystemMessage(config, task.messages)), ...chatStructuredOutput(config.structuredOutput) }),
         cache: "no-store",
     });
     if (!response.ok) {
@@ -221,7 +245,7 @@ async function runOpenAiChatCompletionTask(task: TextTask, origin: string, cooki
         await refundChargedTextResponse(task, response.headers);
         throw new GenerationSubmissionSafeFailure(error instanceof Error ? error.message : "文本生成失败");
     }
-    const content = parseChatCompletionContent(payload);
+    const content = parseChatCompletionContent(payload, config.structuredOutput?.name);
     if (!content.trim()) {
         await refundChargedTextResponse(task, response.headers);
         throw new GenerationSubmissionSafeFailure("文本模型没有返回有效内容");
@@ -250,7 +274,7 @@ async function runGeminiTextTask(task: TextTask, origin: string, cookie: string,
         await refundChargedTextResponse(task, response.headers);
         throw new GenerationSubmissionSafeFailure(error instanceof Error ? error.message : "Gemini 文本生成失败");
     }
-    const content = parseGeminiContent(payload);
+    const content = parseGeminiContent(payload, config.structuredOutput?.name);
     if (!content.trim()) {
         await refundChargedTextResponse(task, response.headers);
         throw new GenerationSubmissionSafeFailure("Gemini 没有返回有效文本内容");
@@ -275,6 +299,7 @@ async function runClaudeTextTask(task: TextTask, origin: string, cookie: string,
             max_tokens: 4096,
             ...(system ? { system } : {}),
             messages: messages.filter((message) => message.role !== "system"),
+            ...claudeStructuredOutput(config.structuredOutput),
         }),
         cache: "no-store",
     });
@@ -285,10 +310,13 @@ async function runClaudeTextTask(task: TextTask, origin: string, cookie: string,
         throw responseError;
     }
     const payload = await parseTextSubmissionJson<ClaudePayload>(task, response);
-    const content = payload.content
-        ?.map((item) => (item.type === "text" && typeof item.text === "string" ? item.text : ""))
-        .join("")
-        .trim();
+    try {
+        validateClaudePayload(payload);
+    } catch (error) {
+        await refundChargedTextResponse(task, response.headers);
+        throw new GenerationSubmissionSafeFailure(error instanceof Error ? error.message : "Claude 文本生成失败");
+    }
+    const content = parseClaudeContent(payload, config.structuredOutput?.name);
     if (!content) {
         await refundChargedTextResponse(task, response.headers);
         throw new GenerationSubmissionSafeFailure(payload.error?.message || "Claude 没有返回有效文本内容");
@@ -297,6 +325,13 @@ async function runClaudeTextTask(task: TextTask, origin: string, cookie: string,
 }
 
 async function completeTextTask(task: TextTask, content: string, billing: { pointsRemaining?: number; pointsCost?: number; pointsRecordId?: string }, attempts: NonNullable<TextTask["attempts"]>): Promise<TextTaskStep> {
+    let normalizedContent: string;
+    try {
+        normalizedContent = normalizeTextTaskResult(task, content);
+    } catch (error) {
+        if (hasSystemAiCharge(billing)) await refundTextBilling(task, billing);
+        throw new GenerationSubmissionSafeFailure(error instanceof Error ? error.message : "模型没有返回有效结构化结果");
+    }
     const succeeded = finishGenerationAttempt(attempts, task.attemptNo || attempts.at(-1)?.attemptNo || 1, {
         status: "succeeded",
         pointsCost: billing.pointsCost,
@@ -304,19 +339,19 @@ async function completeTextTask(task: TextTask, content: string, billing: { poin
     });
     const current = await getTextTask(task.id);
     if (!current || current.status === "cancelled") {
-        if (hasSystemAiCharge(billing)) await refundUserPoints(task.userId, generationModelId(task.config), billing.pointsCost, "text", 1, undefined, billing.pointsRecordId);
+        if (hasSystemAiCharge(billing)) await refundTextBilling(task, billing);
         return { state: "failed", error: current?.error || "文本任务已取消" };
     }
     const completed = await transitionTextTask(current, ["running"], {
         status: "success",
-        result: { content: content || "没有返回内容" },
+        result: { content: normalizedContent || "没有返回内容" },
         pointsRemaining: billing.pointsRemaining,
         messages: [],
         config: clearSecret(current.config),
         billing: hasSystemAiCharge(billing) ? { pointsCost: billing.pointsCost, pointsRecordId: billing.pointsRecordId, refunded: false } : current.billing,
     });
     await updateTextTask(task.id, { config: clearSecret(current.config), candidateConfigs: [], attempts: succeeded, attemptNo: task.attemptNo || succeeded.at(-1)?.attemptNo });
-    if (!completed && hasSystemAiCharge(billing)) await refundUserPoints(task.userId, generationModelId(task.config), billing.pointsCost, "text", 1, undefined, billing.pointsRecordId);
+    if (!completed && hasSystemAiCharge(billing)) await refundTextBilling(task, billing);
     return completed ? { state: "completed" } : { state: "failed", error: "文本任务状态已变化" };
 }
 
@@ -325,7 +360,7 @@ async function failTextTask(task: TextTask, error: string, attempts: NonNullable
     if (current.status === "success") return { state: "completed" };
     if (current.status === "cancelled") return { state: "failed", error: current.error || "文本任务已取消" };
     if (current.billing?.pointsRecordId && !current.billing.refunded) {
-        await refundUserPoints(current.userId, generationModelId(current.config), current.billing.pointsCost, "text", 1, undefined, current.billing.pointsRecordId);
+        await refundTextBilling(current, { pointsCost: current.billing.pointsCost, pointsRecordId: current.billing.pointsRecordId });
         await updateTextTask(current.id, { billing: { ...current.billing, refunded: true } });
     }
     const message = toSafeGenerationErrorMessage(error, "文本生成失败");
@@ -371,7 +406,39 @@ function toGeminiBody(config: TextTaskConfig, messages: AiTextMessage[]) {
     return {
         contents: messages.filter((message) => message.role !== "system").map((message) => ({ role: message.role === "assistant" ? "model" : "user", parts: toGeminiParts(message.content) })),
         ...(systemText ? { systemInstruction: { parts: [{ text: systemText }] } } : {}),
+        ...geminiStructuredOutput(config.structuredOutput),
     };
+}
+
+function responsesStructuredOutput(tool: TextTaskConfig["structuredOutput"]) {
+    return tool
+        ? {
+              tools: [{ type: "function", name: tool.name, description: tool.description, parameters: tool.parameters }],
+              tool_choice: { type: "function", name: tool.name },
+          }
+        : {};
+}
+
+function chatStructuredOutput(tool: TextTaskConfig["structuredOutput"]) {
+    return tool
+        ? {
+              tools: [{ type: "function", function: { name: tool.name, description: tool.description, parameters: tool.parameters } }],
+              tool_choice: { type: "function", function: { name: tool.name } },
+          }
+        : {};
+}
+
+function geminiStructuredOutput(tool: TextTaskConfig["structuredOutput"]) {
+    return tool
+        ? {
+              tools: [{ functionDeclarations: [{ name: tool.name, description: tool.description, parameters: tool.parameters }] }],
+              toolConfig: { functionCallingConfig: { mode: "ANY", allowedFunctionNames: [tool.name] } },
+          }
+        : {};
+}
+
+function claudeStructuredOutput(tool: TextTaskConfig["structuredOutput"]) {
+    return tool ? { tools: [{ name: tool.name, description: tool.description, input_schema: tool.parameters }], tool_choice: { type: "tool", name: tool.name } } : {};
 }
 
 function toGeminiParts(content: AiTextMessage["content"]): GeminiPart[] {
@@ -390,8 +457,9 @@ function geminiTextContent(content: AiTextMessage["content"]) {
     return content.map((item) => (item.type === "text" ? item.text : item.image_url.url)).join("\n");
 }
 
-function parseOpenAiContent(payload: ResponseApiPayload) {
+function parseOpenAiContent(payload: ResponseApiPayload, toolName?: string) {
     return (
+        toolArguments(payload.output?.find((item) => item.type === "function_call" && item.name === toolName)?.arguments) ||
         payload.output_text ||
         payload.output
             ?.flatMap((item) => (item.type === "message" ? item.content || [] : []))
@@ -401,7 +469,16 @@ function parseOpenAiContent(payload: ResponseApiPayload) {
     );
 }
 
-function parseChatCompletionContent(payload: ChatCompletionPayload) {
+function parseChatCompletionContent(payload: ChatCompletionPayload, toolName?: string) {
+    if (toolName) {
+        for (const choice of payload.choices || []) {
+            const message = choice.message;
+            const call = message?.tool_calls?.find((item) => item.function?.name === toolName)?.function;
+            const legacy = message?.function_call?.name === toolName ? message.function_call : undefined;
+            const argumentsText = toolArguments(call?.arguments) || toolArguments(legacy?.arguments);
+            if (argumentsText) return argumentsText;
+        }
+    }
     return payload.choices?.map((choice) => readChatContent(choice.message?.content)).join("") || "";
 }
 
@@ -411,7 +488,14 @@ function readChatContent(content?: string | Array<{ type?: string; text?: string
     return content.map((item) => item.text || "").join("");
 }
 
-function parseGeminiContent(payload: GeminiPayload) {
+function parseGeminiContent(payload: GeminiPayload, toolName?: string) {
+    if (toolName) {
+        for (const part of payload.candidates?.flatMap((candidate) => candidate.content?.parts || []) || []) {
+            if (part.functionCall?.name !== toolName) continue;
+            const argumentsText = toolArguments(part.functionCall.args);
+            if (argumentsText) return argumentsText;
+        }
+    }
     return (
         payload.candidates
             ?.flatMap((candidate) => candidate.content?.parts || [])
@@ -420,19 +504,51 @@ function parseGeminiContent(payload: GeminiPayload) {
     );
 }
 
+function parseClaudeContent(payload: ClaudePayload, toolName?: string) {
+    if (toolName) {
+        const use = payload.content?.find((item) => item.type === "tool_use" && item.name === toolName);
+        const argumentsText = toolArguments(use?.input);
+        if (argumentsText) return argumentsText;
+    }
+    return (
+        payload.content
+            ?.map((item) => (item.type === "text" && typeof item.text === "string" ? item.text : ""))
+            .join("")
+            .trim() || ""
+    );
+}
+
+function toolArguments(value: unknown) {
+    if (typeof value === "string") return value.trim();
+    if (!value || typeof value !== "object" || Array.isArray(value)) return "";
+    try {
+        return JSON.stringify(value);
+    } catch {
+        return "";
+    }
+}
+
 function validateResponsePayload(payload: ResponseApiPayload) {
     if (typeof payload.code === "number" && payload.code !== 0) throw new Error(payload.msg || "请求失败");
     if (payload.error?.message) throw new Error(payload.error.message);
+    if (payload.status === "incomplete" || payload.incomplete_details?.reason) throw new Error("文本模型输出达到长度限制，结果不完整");
 }
 
 function validateChatCompletionPayload(payload: ChatCompletionPayload) {
     if (typeof payload.code === "number" && payload.code !== 0) throw new Error(payload.msg || "请求失败");
     if (payload.error?.message) throw new Error(payload.error.message);
+    if (payload.choices?.some((choice) => ["length", "max_tokens"].includes((choice.finish_reason || "").trim().toLowerCase()))) throw new Error("文本模型输出达到长度限制，结果不完整");
 }
 
 function validateGeminiPayload(payload: GeminiPayload) {
     if (payload.error?.message) throw new Error(payload.error.message);
     if (payload.promptFeedback?.blockReason) throw new Error(`Gemini 拒绝了本次请求：${payload.promptFeedback.blockReason}`);
+    if (payload.candidates?.some((candidate) => candidate.finishReason === "MAX_TOKENS")) throw new Error("Gemini 输出达到长度限制，结果不完整");
+}
+
+function validateClaudePayload(payload: ClaudePayload) {
+    if (payload.error?.message) throw new Error(payload.error.message);
+    if (payload.stop_reason === "max_tokens") throw new Error("Claude 输出达到长度限制，结果不完整");
 }
 
 async function readFetchError(response: Response, fallback: string) {
@@ -484,6 +600,10 @@ export function taskHeaders(config: TextTaskConfig, cookie: string, pointsIdempo
     if (internal) {
         Object.entries(systemAiBillingHeaders(generationModelId(config), pointsIdempotencyKey, config.model)).forEach(([key, value]) => headers.set(key, value));
     }
+    if (pointsIdempotencyKey) {
+        headers.set("idempotency-key", pointsIdempotencyKey);
+        headers.set("x-client-request-id", pointsIdempotencyKey);
+    }
     if (!internal && config.apiFormat === "gemini") headers.set("x-goog-api-key", config.apiKey);
     else if (!internal) headers.set("authorization", `Bearer ${config.apiKey}`);
     return headers;
@@ -501,7 +621,7 @@ async function submissionFetch(config: TextTaskConfig, url: string, init: Reques
     try {
         return await taskFetch(config, url, init);
     } catch (error) {
-        if (isTextRequestTimeout(error)) throw new GenerationSubmissionSafeFailure("文本模型响应超时，正在切换备用模型", 504);
+        if (isTextRequestTimeout(error)) throw new GenerationSubmissionUncertainError("文本模型响应超时，上游是否已受理待确认");
         throw generationSubmissionUncertainError(error, toSafeGenerationErrorMessage(error, "文本任务创建结果未知"));
     }
 }
@@ -532,7 +652,7 @@ function geminiHeaders(config: TextTaskConfig, cookie: string, pointsIdempotency
 }
 
 function pointsIdempotencyKey(task: TextTask, protocol: ResolvedTextProtocol) {
-    return `text-task:${task.id}:attempt:${task.attemptNo || 1}:${protocol.kind}`;
+    return systemAiIdempotencyKey("text-task", task.billingIdempotencyKey || task.clientRequestId || task.id, task.config.channelId || "direct", generationModelId(task.config), task.config.model, String(task.retryNo ?? 0), protocol.kind);
 }
 
 function readPointsRemaining(headers: Headers) {
@@ -549,5 +669,10 @@ function readBilling(headers: Headers) {
 
 async function refundChargedTextResponse(task: TextTask, headers: Headers) {
     const billing = readSystemAiBilling(headers);
-    if (hasSystemAiCharge(billing)) await refundUserPoints(task.userId, generationModelId(task.config), billing.pointsCost, "text", 1, undefined, billing.pointsRecordId);
+    if (hasSystemAiCharge(billing)) await refundTextBilling(task, billing);
+}
+
+function refundTextBilling(task: TextTask, billing: { pointsCost: number; pointsRecordId: string }) {
+    const idempotencyKey = systemAiIdempotencyKey("text-task-refund", task.id, String(task.retryNo ?? 0), task.config.channelId || "direct", task.config.model, billing.pointsRecordId);
+    return refundUserPoints(task.userId, generationModelId(task.config), billing.pointsCost, "text", 1, idempotencyKey, billing.pointsRecordId);
 }

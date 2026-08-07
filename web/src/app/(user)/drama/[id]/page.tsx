@@ -8,7 +8,7 @@ import { useParams, useRouter } from "next/navigation";
 import { createImageGenerationTask, waitForImageGenerationTask } from "@/services/api/image";
 import { createServerVideoGenerationTask } from "@/services/api/video";
 import { syncUserPointsFromHeaders } from "@/services/api/points";
-import { exportDramaJianyingDraft, getDramaProjectCosts, reviewDramaEpisode } from "@/services/api/drama-projects";
+import { exportDramaJianyingDraft, getDramaProjectCosts, reviewDramaEpisode, runDramaAnalysis } from "@/services/api/drama-projects";
 import { compileDramaShotPrompts } from "@/lib/drama-prompt-compiler";
 import { mediaDownloadFileName } from "@/lib/media-file";
 import { originalMediaDownloadUrl } from "@/lib/media-image-url";
@@ -16,7 +16,7 @@ import { splitDramaSource } from "@/lib/drama-source-splitter";
 import { useEffectiveConfig } from "@/stores/use-config-store";
 import { useUserStore } from "@/stores/use-user-store";
 import { useDramaStore } from "../stores/use-drama-store";
-import type { DramaContentAnalysis, DramaCostSummary, DramaProject, DramaProjectVersion, DramaRenderTask, DramaShot, DramaVisualAnalysis } from "../types";
+import type { DramaCostSummary, DramaEpisode, DramaProject, DramaProjectVersion, DramaRenderTask, DramaShot } from "../types";
 import { buildSrt } from "../subtitle";
 import { cancelDramaAudioTask, useDramaAudioQueue } from "./use-drama-audio-queue";
 import { DramaAgentPanel } from "./drama-agent-panel";
@@ -95,7 +95,10 @@ function DramaProjectEditor({ project }: { project: DramaProject }) {
     const startingShotRef = useRef("");
     const storyboardTaskRef = useRef("");
     const sourceFileInputRef = useRef<HTMLInputElement>(null);
-    const [stage, setStage] = useState<Stage>("script");
+    const analysisControllerRef = useRef<AbortController | null>(null);
+    const episode = project.episodes.find((item) => item.id === project.activeEpisodeId) || project.episodes[0];
+    const stageEpisodeIdRef = useRef(episode.id);
+    const [stage, setStage] = useState<Stage>(() => restoredDramaStage(episode));
     const [analyzing, setAnalyzing] = useState(false);
     const [designing, setDesigning] = useState(false);
     const [versionsOpen, setVersionsOpen] = useState(false);
@@ -113,10 +116,32 @@ function DramaProjectEditor({ project }: { project: DramaProject }) {
     const [previewMedia, setPreviewMedia] = useState<DramaPreviewMedia>();
     const { isWaiting: isCapacityWaiting, schedule: scheduleCapacityRetry } = useGenerationCapacityRetry();
     const audioReady = Boolean(config.audioModel.trim());
+    const cancelAnalysisRequest = () => {
+        const controller = analysisControllerRef.current;
+        analysisControllerRef.current = null;
+        controller?.abort();
+        setAnalyzing(false);
+        setDesigning(false);
+    };
 
-    const episode = project.episodes.find((item) => item.id === project.activeEpisodeId) || project.episodes[0];
     const renderTask = episode.renderTask || null;
     useDramaAudioQueue(project, episode, config, updateShot);
+    useEffect(() => {
+        if (stageEpisodeIdRef.current !== episode.id) {
+            analysisControllerRef.current?.abort();
+            analysisControllerRef.current = null;
+            setAnalyzing(false);
+            setDesigning(false);
+            stageEpisodeIdRef.current = episode.id;
+        }
+        setStage(restoredDramaStage(episode));
+    }, [episode.id, episode.reviewStatus]);
+    useEffect(
+        () => () => {
+            analysisControllerRef.current?.abort();
+        },
+        [],
+    );
     useEffect(() => {
         if (stage !== "generate" || renderReady !== null) return;
         void fetch("/api/drama/render-capability", { cache: "no-store" })
@@ -147,22 +172,47 @@ function DramaProjectEditor({ project }: { project: DramaProject }) {
         }, 2500);
         return () => window.clearInterval(timer);
     }, [episode.id, project.id, renderTask, updateEpisode]);
+    const startAnalysisRequest = (kind: "content" | "visual") => {
+        cancelAnalysisRequest();
+        const controller = new AbortController();
+        analysisControllerRef.current = controller;
+        if (kind === "content") setAnalyzing(true);
+        else setDesigning(true);
+        return controller;
+    };
+    const finishAnalysisRequest = (controller: AbortController, kind: "content" | "visual") => {
+        if (analysisControllerRef.current !== controller) return;
+        analysisControllerRef.current = null;
+        if (kind === "content") setAnalyzing(false);
+        else setDesigning(false);
+    };
+    const saveAnalysisSnapshot = (snapshot: DramaProject, reason: string) => {
+        void createVersion(snapshot, reason).catch((error) => message.warning(`分析结果已应用，但版本快照保存失败：${error instanceof Error ? error.message : "请稍后手动保存版本"}`));
+    };
     const analyzeScript = async () => {
         if (!episode.script.trim()) return message.warning("请先填写剧本内容");
-        setAnalyzing(true);
+        const controller = startAnalysisRequest("content");
+        const snapshot = project;
+        const sourceScript = episode.script;
+        const sourceSummary = project.summary;
+        const sourceStyle = project.style;
+        const episodeId = episode.id;
         try {
-            const response = await fetch("/api/drama/analyze", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ phase: "content", script: episode.script, summary: project.summary, style: project.style }) });
-            syncUserPointsFromHeaders(response.headers, "system");
-            const payload = (await response.json().catch(() => ({}))) as { data?: DramaContentAnalysis; msg?: string };
-            if (!response.ok || !payload.data) throw new Error(payload.msg || "AI 剧本解析失败");
-            await createVersion(project, "AI 内容解析前");
-            applyContentAnalysis(project.id, episode.id, payload.data);
+            const analysis = await runDramaAnalysis({ phase: "content", projectId: project.id, episodeId, script: sourceScript, summary: sourceSummary, style: sourceStyle }, { signal: controller.signal });
+            if (controller.signal.aborted) return;
+            const currentProject = useDramaStore.getState().projects.find((item) => item.id === project.id);
+            const currentEpisode = currentProject?.episodes.find((item) => item.id === episodeId);
+            if (!currentProject || !currentEpisode || currentEpisode.script !== sourceScript || currentProject.summary !== sourceSummary || currentProject.style !== sourceStyle) {
+                return message.warning("等待期间剧本或创作方向已发生变化，本次解析结果未应用，请重新提取");
+            }
+            saveAnalysisSnapshot(snapshot, "AI 内容解析前");
+            applyContentAnalysis(project.id, episodeId, analysis);
             setStage("review");
-            message.success(`已提取 ${payload.data.characters.length} 个角色、${payload.data.scenes.length} 个场景和 ${payload.data.shots.length} 个待审核镜头`);
+            message.success(`已提取 ${analysis.characters.length} 个角色、${analysis.scenes.length} 个场景和 ${analysis.shots.length} 个待审核镜头`);
         } catch (error) {
-            message.error(error instanceof Error ? error.message : "AI 剧本解析失败");
+            if (!isAbortError(error)) message.error(error instanceof Error ? error.message : "AI 剧本解析失败");
         } finally {
-            setAnalyzing(false);
+            finishAnalysisRequest(controller, "content");
         }
     };
     const importSourceBook = async (file?: File) => {
@@ -176,6 +226,7 @@ function DramaProjectEditor({ project }: { project: DramaProject }) {
                 okText: "导入分集",
                 cancelText: "取消",
                 onOk: async () => {
+                    cancelAnalysisRequest();
                     await createVersion(project, "整本导入前");
                     importEpisodes(project.id, drafts);
                     setStage("script");
@@ -190,25 +241,26 @@ function DramaProjectEditor({ project }: { project: DramaProject }) {
     };
     const designVisuals = async () => {
         if (!episode.shots.length) return message.warning("请先完成内容解析");
-        updateEpisode(project.id, episode.id, { reviewStatus: "approved" });
-        setDesigning(true);
+        const controller = startAnalysisRequest("visual");
+        const snapshot = project;
+        const sourceUpdatedAt = project.updatedAt;
+        const episodeId = episode.id;
         try {
-            const response = await fetch("/api/drama/analyze", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ phase: "visual", summary: project.summary, style: project.style, episode, characters: project.characters, scenes: project.scenes, props: project.props, clues: project.clues, shots: episode.shots }),
-            });
-            syncUserPointsFromHeaders(response.headers, "system");
-            const payload = (await response.json().catch(() => ({}))) as { data?: DramaVisualAnalysis; msg?: string };
-            if (!response.ok || !payload.data) throw new Error(payload.msg || "AI 视觉方案生成失败");
-            await createVersion(project, "视觉方案生成前");
-            applyVisualAnalysis(project.id, episode.id, payload.data);
+            const analysis = await runDramaAnalysis(
+                { phase: "visual", projectId: project.id, episodeId, summary: project.summary, style: project.style, episode, characters: project.characters, scenes: project.scenes, props: project.props, clues: project.clues, shots: episode.shots },
+                { signal: controller.signal },
+            );
+            if (controller.signal.aborted) return;
+            const current = useDramaStore.getState().projects.find((item) => item.id === project.id);
+            if (!current || current.updatedAt !== sourceUpdatedAt) return message.warning("等待期间审核内容已发生变化，本次视觉方案未应用，请重新生成");
+            saveAnalysisSnapshot(snapshot, "视觉方案生成前");
+            applyVisualAnalysis(project.id, episodeId, analysis);
             setStage("storyboard");
             message.success("已按审核内容生成视觉方案");
         } catch (error) {
-            message.error(error instanceof Error ? error.message : "AI 视觉方案生成失败");
+            if (!isAbortError(error)) message.error(error instanceof Error ? error.message : "AI 视觉方案生成失败");
         } finally {
-            setDesigning(false);
+            finishAnalysisRequest(controller, "visual");
         }
     };
     const openVersions = async () => {
@@ -224,9 +276,12 @@ function DramaProjectEditor({ project }: { project: DramaProject }) {
     };
     const restore = async (version: DramaProjectVersion) => {
         try {
+            cancelAnalysisRequest();
             await restoreVersion(project.id, version.id);
             setVersionsOpen(false);
-            setStage("review");
+            const restoredProject = useDramaStore.getState().projects.find((item) => item.id === project.id);
+            const restoredEpisode = restoredProject?.episodes.find((item) => item.id === restoredProject.activeEpisodeId) || restoredProject?.episodes[0];
+            setStage(restoredEpisode ? restoredDramaStage(restoredEpisode) : "script");
             message.success(`已恢复到版本 ${version.version}`);
         } catch (error) {
             message.error(error instanceof Error ? error.message : "版本恢复失败");
@@ -518,9 +573,13 @@ function DramaProjectEditor({ project }: { project: DramaProject }) {
                         type="editable-card"
                         activeKey={episode.id}
                         items={project.episodes.map((item) => ({ key: item.id, label: item.title, closable: project.episodes.length > 1 }))}
-                        onChange={(episodeId) => selectEpisode(project.id, episodeId)}
+                        onChange={(episodeId) => {
+                            cancelAnalysisRequest();
+                            selectEpisode(project.id, episodeId);
+                        }}
                         onEdit={(targetKey, action) => {
                             if (action === "add") {
+                                cancelAnalysisRequest();
                                 addEpisode(project.id);
                                 setStage("script");
                                 return;
@@ -533,7 +592,10 @@ function DramaProjectEditor({ project }: { project: DramaProject }) {
                                 okText: "删除",
                                 okButtonProps: { danger: true },
                                 cancelText: "取消",
-                                onOk: () => deleteEpisode(project.id, removing.id),
+                                onOk: () => {
+                                    cancelAnalysisRequest();
+                                    deleteEpisode(project.id, removing.id);
+                                },
                             });
                         }}
                     />
@@ -576,7 +638,10 @@ function DramaProjectEditor({ project }: { project: DramaProject }) {
                                     <Input.TextArea
                                         className="!h-52 !rounded-lg !bg-background !p-2.5 sm:!h-auto sm:!p-4"
                                         value={episode.script}
-                                        onChange={(event) => updateEpisode(project.id, episode.id, { script: event.target.value })}
+                                        onChange={(event) => {
+                                            if (event.target.value !== episode.script) cancelAnalysisRequest();
+                                            updateEpisode(project.id, episode.id, { script: event.target.value });
+                                        }}
                                         rows={18}
                                         placeholder="粘贴或编写本集剧本，每个段落会生成一个镜头草稿…"
                                     />
@@ -587,11 +652,24 @@ function DramaProjectEditor({ project }: { project: DramaProject }) {
                                         </label>
                                         <label className="block space-y-2.5">
                                             <span className="text-sm font-medium">故事简介</span>
-                                            <Input.TextArea value={project.summary} onChange={(event) => updateProject(project.id, { summary: event.target.value })} rows={4} />
+                                            <Input.TextArea
+                                                value={project.summary}
+                                                onChange={(event) => {
+                                                    if (event.target.value !== project.summary) cancelAnalysisRequest();
+                                                    updateProject(project.id, { summary: event.target.value });
+                                                }}
+                                                rows={4}
+                                            />
                                         </label>
                                         <label className="block space-y-2.5">
                                             <span className="text-sm font-medium">视觉风格</span>
-                                            <Input value={project.style} onChange={(event) => updateProject(project.id, { style: event.target.value })} />
+                                            <Input
+                                                value={project.style}
+                                                onChange={(event) => {
+                                                    if (event.target.value !== project.style) cancelAnalysisRequest();
+                                                    updateProject(project.id, { style: event.target.value });
+                                                }}
+                                            />
                                         </label>
                                         <label className="block space-y-2.5">
                                             <span className="text-sm font-medium">视频生产模式</span>
@@ -607,7 +685,7 @@ function DramaProjectEditor({ project }: { project: DramaProject }) {
                                             />
                                         </label>
                                         <Button type="primary" block className="!h-11 sm:!h-9" icon={<Sparkles className="size-4" />} loading={analyzing} onClick={() => void analyzeScript()}>
-                                            AI 提取内容结构
+                                            {analyzing ? "AI 正在提取内容结构…" : "AI 提取内容结构"}
                                         </Button>
                                         <p className="pt-1 text-xs leading-5 text-muted-foreground">解析结果会进入内容审核，不会直接启动图片或视频生成。</p>
                                     </div>
@@ -941,4 +1019,14 @@ function DramaProjectEditor({ project }: { project: DramaProject }) {
             <DramaMediaPreviewModal media={previewMedia} onClose={() => setPreviewMedia(undefined)} />
         </main>
     );
+}
+
+function restoredDramaStage(episode: Pick<DramaEpisode, "reviewStatus">): Stage {
+    if (episode.reviewStatus === "visual_ready") return "storyboard";
+    if (episode.reviewStatus === "content_review" || episode.reviewStatus === "approved") return "review";
+    return "script";
+}
+
+function isAbortError(error: unknown) {
+    return error instanceof DOMException ? error.name === "AbortError" : error instanceof Error && error.name === "AbortError";
 }

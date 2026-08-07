@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import type { LogicalModelCapabilityProfile, SystemChannelAdvancedConfig } from "@/lib/auth/store";
 import type { AiTextMessage } from "@/types/ai";
 import { createStoredGenerationTask, getStoredGenerationTask, mutateStoredGenerationTask, touchStoredGenerationTask, transitionStoredGenerationTask } from "@/lib/server/generation-task-store";
+import type { GenerationTaskContext } from "@/lib/server/generation-task-store";
 import type { GenerationAttempt } from "@/lib/server/generation-attempt";
 import { GENERATION_TASK_RETENTION_MS } from "@/lib/server/generation-task-retention";
 
@@ -19,6 +20,11 @@ export type TextTaskConfig = {
     capabilityProfile?: LogicalModelCapabilityProfile;
     advancedConfig?: SystemChannelAdvancedConfig;
     systemPrompt?: string;
+    structuredOutput?: {
+        name: string;
+        description: string;
+        parameters: Record<string, unknown>;
+    };
 };
 
 export type TextTask = {
@@ -37,7 +43,11 @@ export type TextTask = {
     candidateConfigs?: TextTaskConfig[];
     attempts?: GenerationAttempt[];
     attemptNo?: number;
-};
+    retryNo?: number;
+    billingIdempotencyKey?: string;
+    metadata?: Record<string, unknown>;
+    executionPhase?: import("@/lib/server/generation-task-scheduler").GenerationTaskExecutionPhase;
+} & GenerationTaskContext;
 
 export async function createTextTask(input: Omit<TextTask, "id" | "status" | "createdAt" | "updatedAt">) {
     const now = Date.now();

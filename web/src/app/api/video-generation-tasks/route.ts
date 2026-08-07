@@ -357,7 +357,8 @@ function proxyFetch(origin: string, baseUrl: string, path: string, cookie: strin
     const workerHeaders = maintenanceWorkerContextHeaders(cookie);
     if (workerHeaders) Object.entries(workerHeaders).forEach(([key, value]) => headers.set(key, value));
     else if (cookie) headers.set("cookie", cookie);
-    return fetchInternalApi(`${origin}${baseUrl.replace(/\/+$/, "")}${path.startsWith("/") ? path : `/${path}`}`, { ...init, headers });
+    const request = typeof FormData !== "undefined" && init.body instanceof FormData ? fetch : fetchInternalApi;
+    return request(`${origin}${baseUrl.replace(/\/+$/, "")}${path.startsWith("/") ? path : `/${path}`}`, { ...init, headers });
 }
 function publicTask(task: VideoTask) {
     return { id: task.id, status: task.status, model: generationModelId(task.config), upstreamId: task.upstream.id || undefined, durationSeconds: task.requestedDurationSeconds, canRetry: task.retryable === true };

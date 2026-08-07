@@ -16,7 +16,15 @@ vi.mock("@/lib/server/data-adapter", () => ({
 }));
 
 import { getDatabaseProvider, postgresQuery } from "@/lib/server/database";
-import { createStoredGenerationTask, getStoredGenerationTask, listStoredGenerationTaskRecords, mutateStoredGenerationTask, summarizeStoredGenerationTaskCosts, withGenerationConcurrencyLimit } from "./generation-task-store";
+import {
+    createStoredGenerationTask,
+    getLatestStoredGenerationTaskByRequest,
+    getStoredGenerationTask,
+    listStoredGenerationTaskRecords,
+    mutateStoredGenerationTask,
+    summarizeStoredGenerationTaskCosts,
+    withGenerationConcurrencyLimit,
+} from "./generation-task-store";
 
 type TestTask = {
     id: string;
@@ -97,6 +105,15 @@ describe("mutateStoredGenerationTask", () => {
         expect(retry.id).toBe("video-retry");
         expect(mocks.records).toHaveLength(2);
         expect(mocks.records.every((record) => record.executionPhase === "created")).toBe(true);
+    });
+
+    it("returns the latest retry attempt for a stable client request", async () => {
+        mocks.records = [];
+        const now = Date.now();
+        await createStoredGenerationTask("text", { id: "text-first", userId: "user", status: "error", clientRequestId: "drama-analysis", attemptNo: 0, retryNo: 0, createdAt: now, updatedAt: now }, 60_000);
+        await createStoredGenerationTask("text", { id: "text-retry", userId: "user", status: "pending", clientRequestId: "drama-analysis", attemptNo: 1, retryNo: 1, createdAt: now + 1, updatedAt: now + 1 }, 60_000);
+
+        await expect(getLatestStoredGenerationTaskByRequest<{ id: string; retryNo: number }>("text", "user", "drama-analysis")).resolves.toEqual(expect.objectContaining({ id: "text-retry", retryNo: 1 }));
     });
 });
 

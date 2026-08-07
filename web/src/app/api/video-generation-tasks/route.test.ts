@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
     after: vi.fn(),
+    fetch: vi.fn(),
     fetchInternalApi: vi.fn(),
     createVideoTask: vi.fn(),
     claimVideoTaskPoll: vi.fn(),
@@ -51,6 +52,7 @@ vi.mock("@/lib/server/video-task-store", () => ({
     transitionVideoTask: mocks.transitionVideoTask,
     updateVideoTask: mocks.updateVideoTask,
 }));
+vi.stubGlobal("fetch", mocks.fetch);
 
 import { POST } from "./route";
 import { resetChannelRuntimeHealth } from "@/lib/server/channel-runtime-health";
@@ -85,6 +87,7 @@ describe("video generation candidate failover", () => {
 
     beforeEach(() => {
         vi.clearAllMocks();
+        mocks.fetch.mockReset().mockImplementation((input, init) => mocks.fetchInternalApi(input, init));
         mocks.fetchInternalApi.mockReset();
         resetChannelRuntimeHealth();
         mocks.getAuthSettings.mockResolvedValue(settings);
@@ -310,6 +313,7 @@ describe("video generation candidate failover", () => {
 
         expect(response.status).toBe(200);
         expect(url).toContain("/api/ai/system/one/videos");
+        expect(mocks.fetch).toHaveBeenCalledTimes(1);
         expect(init.body).toBeInstanceOf(FormData);
         expect(new Headers(init.headers).has("content-type")).toBe(false);
         expect(body.get("model")).toBe("video-one");
@@ -340,6 +344,7 @@ describe("video generation candidate failover", () => {
 
         expect(response.status).toBe(200);
         expect(url).toContain("/api/ai/system/one/videos");
+        expect(mocks.fetch).not.toHaveBeenCalled();
         expect(new Headers(init.headers).get("content-type")).toBe("application/json");
         expect(JSON.parse(String(init.body))).toEqual({ model: "happyhorse-1.1-t2v", prompt: "A test video", duration: 5, ratio: "16:9", resolution: "720P", seed: 0 });
     });
@@ -354,6 +359,7 @@ describe("video generation candidate failover", () => {
 
         expect(response.status).toBe(200);
         expect(url).toContain("/api/ai/system/one/videos");
+        expect(mocks.fetch).toHaveBeenCalledTimes(1);
         expect(init.body).toBeInstanceOf(FormData);
         expect(new Headers(init.headers).has("content-type")).toBe(false);
         const body = init.body as FormData;

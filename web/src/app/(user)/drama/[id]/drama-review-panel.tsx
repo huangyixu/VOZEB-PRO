@@ -33,7 +33,7 @@ export function DramaReviewPanel({ project, episode, onDesignVisuals, designing 
             <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between lg:gap-5">
                 <SectionTitle className="!mb-0" title="内容审核" description="先确认剧本事实、镜头边界和叙事信息；视觉模型不会在这个阶段改写你的内容。" />
                 <Button type="primary" className="!h-11 !w-full sm:!h-9 sm:!w-auto" icon={<Check className="size-4" />} loading={designing} disabled={!episode.shots.length} onClick={onDesignVisuals}>
-                    确认内容并生成视觉方案
+                    {designing ? "AI 正在生成视觉方案…" : "确认内容并生成视觉方案"}
                 </Button>
             </div>
             <div className="mt-4 grid gap-3 sm:mt-6 sm:gap-4 md:grid-cols-2">

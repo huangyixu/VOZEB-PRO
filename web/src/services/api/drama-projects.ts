@@ -39,6 +39,8 @@ type DramaRequestOptions = { signal?: AbortSignal; timeoutMs?: number };
 const DRAMA_ANALYSIS_POLL_INTERVAL_MS = 1500;
 const DRAMA_ANALYSIS_TIMEOUT_MS = 10 * 60_000;
 const DRAMA_ANALYSIS_TIMEOUT_MESSAGE = "AI 分析等待超时，任务仍在后台，可再次点击继续查询";
+const DRAMA_VISUAL_BATCH_SIZE = 8;
+const DRAMA_VISUAL_CONTEXT_SIZE = 1;
 
 export function runDramaAnalysis(input: DramaContentAnalysisRequest, options?: DramaRequestOptions): Promise<DramaContentAnalysis>;
 export function runDramaAnalysis(input: DramaVisualAnalysisRequest, options?: DramaRequestOptions): Promise<DramaVisualAnalysis>;
@@ -53,21 +55,45 @@ export async function runDramaAnalysis(input: DramaAnalysisRequest, options?: Dr
         controller.abort(new DOMException(DRAMA_ANALYSIS_TIMEOUT_MESSAGE, "TimeoutError"));
     }, options?.timeoutMs || DRAMA_ANALYSIS_TIMEOUT_MS);
     try {
-        let task = (await dramaAnalysisRequest("/api/drama/analyze", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(input), signal: controller.signal })).task;
-        if (!task) throw new Error("AI 分析任务创建失败");
-        for (;;) {
-            const result = completedDramaAnalysis(task, input.phase);
-            if (result) return result;
-            await delay(DRAMA_ANALYSIS_POLL_INTERVAL_MS, controller.signal);
-            task = (await dramaAnalysisRequest(`/api/drama/analyze?taskId=${encodeURIComponent(task.id)}`, { cache: "no-store", signal: controller.signal })).task;
-            if (!task) throw new Error("AI 分析任务不存在或已过期");
-        }
+        if (input.phase === "visual" && input.shots.length > DRAMA_VISUAL_BATCH_SIZE) return await runVisualAnalysisBatches(input, controller.signal);
+        return await runSingleDramaAnalysis(input, controller.signal);
     } catch (error) {
         if (timedOut) throw new Error(DRAMA_ANALYSIS_TIMEOUT_MESSAGE);
         throw error;
     } finally {
         globalThis.clearTimeout(timer);
         options?.signal?.removeEventListener("abort", abort);
+    }
+}
+
+async function runVisualAnalysisBatches(input: DramaVisualAnalysisRequest, signal: AbortSignal): Promise<DramaVisualAnalysis> {
+    const visualByShot = new Map<string, DramaVisualAnalysis["shots"][number]>();
+    for (let start = 0; start < input.shots.length; start += DRAMA_VISUAL_BATCH_SIZE) {
+        const target = input.shots.slice(start, start + DRAMA_VISUAL_BATCH_SIZE);
+        const context = input.shots.slice(Math.max(0, start - DRAMA_VISUAL_CONTEXT_SIZE), Math.min(input.shots.length, start + DRAMA_VISUAL_BATCH_SIZE + DRAMA_VISUAL_CONTEXT_SIZE));
+        const result = (await runSingleDramaAnalysis({ ...input, shots: context }, signal)) as DramaVisualAnalysis;
+        const targetIds = new Set(target.map((shot) => shot.id));
+        result.shots.forEach((shot) => {
+            if (targetIds.has(shot.shotId)) visualByShot.set(shot.shotId, shot);
+        });
+    }
+    const shots = input.shots.flatMap((shot) => {
+        const visual = visualByShot.get(shot.id);
+        return visual ? [visual] : [];
+    });
+    if (shots.length !== input.shots.length) throw new Error("AI 视觉方案分批结果不完整，请再次点击继续生成");
+    return { shots };
+}
+
+async function runSingleDramaAnalysis(input: DramaAnalysisRequest, signal: AbortSignal): Promise<DramaAnalysisResult> {
+    let task = (await dramaAnalysisRequest("/api/drama/analyze", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(input), signal })).task;
+    if (!task) throw new Error("AI 分析任务创建失败");
+    for (;;) {
+        const result = completedDramaAnalysis(task, input.phase);
+        if (result) return result;
+        await delay(DRAMA_ANALYSIS_POLL_INTERVAL_MS, signal);
+        task = (await dramaAnalysisRequest(`/api/drama/analyze?taskId=${encodeURIComponent(task.id)}`, { cache: "no-store", signal })).task;
+        if (!task) throw new Error("AI 分析任务不存在或已过期");
     }
 }
 

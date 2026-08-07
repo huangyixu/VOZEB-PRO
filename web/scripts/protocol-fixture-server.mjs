@@ -199,37 +199,35 @@ function toolArguments(name, payload) {
     }
     if (name === "design_drama_visuals") {
         return {
-            shots: [
-                {
-                    shotId: firstShotId(payload) || "shot-1",
-                    imagePrompt: "主角推门进入明亮房间",
-                    videoPrompt: "镜头缓慢推进，主角推门进入",
-                    cameraMotion: "缓慢推进",
-                    startFramePrompt: "关闭的房门",
-                    endFramePrompt: "主角站在房间中央",
-                    negativePrompt: "模糊，畸形",
-                    continuity: {
-                        shotSize: "中景",
-                        cameraAngle: "平视",
-                        composition: "主体居中",
-                        characterBlocking: "主角从左向右进入",
-                        gazeDirection: "看向前方",
-                        actionStart: "推门",
-                        actionEnd: "站定",
-                        screenDirection: "左到右",
-                        axisRule: "保持180度轴线",
-                        continuityNotes: "保持角色服装和场景一致",
-                    },
+            shots: (shotIds(payload).length ? shotIds(payload) : ["shot-1"]).map((shotId) => ({
+                shotId,
+                imagePrompt: "主角推门进入明亮房间",
+                videoPrompt: "镜头缓慢推进，主角推门进入",
+                cameraMotion: "缓慢推进",
+                startFramePrompt: "关闭的房门",
+                endFramePrompt: "主角站在房间中央",
+                negativePrompt: "模糊，畸形",
+                continuity: {
+                    shotSize: "中景",
+                    cameraAngle: "平视",
+                    composition: "主体居中",
+                    characterBlocking: "主角从左向右进入",
+                    gazeDirection: "看向前方",
+                    actionStart: "推门",
+                    actionEnd: "站定",
+                    screenDirection: "左到右",
+                    axisRule: "保持180度轴线",
+                    continuityNotes: "保持角色服装和场景一致",
                 },
-            ],
+            })),
         };
     }
     return {};
 }
 
-function firstShotId(payload) {
+function shotIds(payload) {
     const source = JSON.stringify(payload.input || payload.messages || "");
-    return source.match(/shot-[A-Za-z0-9_-]+/)?.[0] || "";
+    return [...new Set(source.match(/shot-[A-Za-z0-9_-]+/g) || [])];
 }
 
 function videoTaskId(path) {

@@ -30,6 +30,20 @@ describe("protocol fixture server", () => {
         expect(JSON.parse(response.output[0].arguments)).toMatchObject({ intent: "generation", deliverables: [{ type: "image", model: "mock-image", ratio: "16:9" }] });
     });
 
+    it("returns every requested shot for drama visual batches", async () => {
+        const response = await fetch(`${origin}/v1/chat/completions`, {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({
+                messages: [{ role: "user", content: JSON.stringify({ shots: [{ id: "shot-1" }, { id: "shot-2" }, { id: "shot-3" }] }) }],
+                tools: [{ type: "function", function: { name: "design_drama_visuals" } }],
+                tool_choice: { type: "function", function: { name: "design_drama_visuals" } },
+            }),
+        }).then((value) => value.json());
+
+        expect(JSON.parse(response.choices[0].message.tool_calls[0].function.arguments).shots.map((shot) => shot.shotId)).toEqual(["shot-1", "shot-2", "shot-3"]);
+    });
+
     it("serves OpenAI and Stable Diffusion image results", async () => {
         const openAi = await fetch(`${origin}/v1/images/generations`, { method: "POST" }).then((response) => response.json());
         const stableDiffusion = await fetch(`${origin}/sdapi/v1/txt2img`, { method: "POST" }).then((response) => response.json());

@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import type { DramaShot } from "@/lib/drama-project-contract";
+
 const mocks = vi.hoisted(() => ({ syncUserPointsFromHeaders: vi.fn() }));
 
 vi.mock("@/services/api/points", () => ({ syncUserPointsFromHeaders: mocks.syncUserPointsFromHeaders }));
@@ -49,6 +51,30 @@ describe("drama project api", () => {
 
         await expect(runDramaAnalysis({ phase: "content", projectId: "drama-one", episodeId: "episode-one", script: "原始剧本", summary: "", style: "" })).resolves.toEqual(result);
         expect(fetchMock).toHaveBeenCalledTimes(1);
+    });
+
+    it("splits long visual plans into bounded persistent tasks and merges target shots in order", async () => {
+        const shots = Array.from({ length: 17 }, (_, index) => dramaShot(index + 1));
+        const requestedBatches: string[][] = [];
+        const fetchMock = vi.fn().mockImplementation((_url: string, init?: RequestInit) => {
+            const input = JSON.parse(String(init?.body)) as { shots: DramaShot[] };
+            requestedBatches.push(input.shots.map((shot) => shot.id));
+            return Promise.resolve(
+                taskResponse({
+                    id: `visual-${requestedBatches.length}`,
+                    status: "success",
+                    phase: "visual",
+                    result: { shots: input.shots.map((shot) => visualShot(shot.id)) },
+                }),
+            );
+        });
+        vi.stubGlobal("fetch", fetchMock);
+
+        const result = await runDramaAnalysis({ phase: "visual", projectId: "drama-one", episodeId: "episode-one", summary: "", style: "", episode: episode(), characters: [], scenes: [], props: [], clues: [], shots });
+
+        expect(requestedBatches).toEqual([shots.slice(0, 9).map((shot) => shot.id), shots.slice(7, 17).map((shot) => shot.id), shots.slice(15, 17).map((shot) => shot.id)]);
+        expect(result.shots.map((shot) => shot.shotId)).toEqual(shots.map((shot) => shot.id));
+        expect(fetchMock).toHaveBeenCalledTimes(3);
     });
 
     it("maps an HTML 504 response to an actionable analysis error", async () => {
@@ -133,4 +159,49 @@ function contentAnalysis() {
 
 function episode() {
     return { id: "episode-one", title: "第一集", script: "剧本", outline: "", hook: "", nextPreview: "", sourceRange: "", reviewStatus: "content_review" as const, shots: [] };
+}
+
+function dramaShot(order: number): DramaShot {
+    return {
+        id: `shot-${order}`,
+        order,
+        title: `镜头 ${order}`,
+        description: "人物继续行动",
+        sourceText: "人物继续行动。",
+        shotBoundary: "动作结束",
+        dialogue: "",
+        narration: "",
+        utterances: [],
+        imagePrompt: "",
+        videoPrompt: "",
+        cameraMotion: "",
+        duration: 5,
+        characterIds: [],
+        propIds: [],
+        clueIds: [],
+    };
+}
+
+function visualShot(shotId: string) {
+    return {
+        shotId,
+        imagePrompt: `${shotId} 图片提示词`,
+        videoPrompt: `${shotId} 视频提示词`,
+        cameraMotion: "固定镜头",
+        startFramePrompt: "动作开始",
+        endFramePrompt: "动作结束",
+        negativePrompt: "画面瑕疵",
+        continuity: {
+            shotSize: "中景",
+            cameraAngle: "平视",
+            composition: "居中",
+            characterBlocking: "画面中央",
+            gazeDirection: "看向右侧",
+            actionStart: "站立",
+            actionEnd: "转身",
+            screenDirection: "从左向右",
+            axisRule: "保持轴线",
+            continuityNotes: "延续上一镜头",
+        },
+    };
 }

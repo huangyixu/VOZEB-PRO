@@ -27,11 +27,11 @@ describe("Docker Compose contracts", () => {
         expect(() => validateComposeContract(source, profile)).toThrow("generation-worker 不应直接持有数据库连接串");
     });
 
-    it("rejects Baota-only host networking in the public default topology", () => {
+    it("rejects host networking in the public default topology", () => {
         const profile = composeProfiles.find(({ file }) => file === "docker-compose.yml");
         const source = readFileSync(path.join(repoRoot, profile.file), "utf8").replace("    image: ${VENLINKS_IMAGE", "    network_mode: host\n    image: ${VENLINKS_IMAGE");
 
-        expect(() => validateComposeContract(source, profile)).toThrow("宝塔专用 host 网络不得泄漏到其他拓扑");
+        expect(() => validateComposeContract(source, profile)).toThrow("host 网络不得泄漏到非宿主机数据库拓扑");
     });
 
     it("reports an invalid docs service shape as a contract failure", () => {

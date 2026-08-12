@@ -5,7 +5,7 @@ import { parse } from "yaml";
 
 export const composeProfiles = [
     { file: "docker-compose.yml", embeddedPostgres: true, workerOrigin: "http://app:3000" },
-    { file: "docker-compose.local.yml", embeddedPostgres: true, localBuild: true, workerOrigin: "http://app:3000" },
+    { file: "docker-compose.local.yml", embeddedPostgres: false, localBuild: true, hostNetwork: true, workerOrigin: "http://127.0.0.1:${VENLINKS_HOST_PORT:-3002}" },
     { file: "docker-compose.baota.yml", embeddedPostgres: false, hostNetwork: true, workerOrigin: "http://127.0.0.1:3000" },
     { file: "docker-compose.external-db.yml", embeddedPostgres: false, workerOrigin: "http://app:3000" },
     { file: "docker-compose.lowmem.yml", embeddedPostgres: false, workerOrigin: "http://app:3000" },
@@ -102,17 +102,16 @@ export function validateComposeContract(source, profile) {
     }
 
     if (profile.localBuild) {
-        ensure(String(services.postgres?.image || "").includes("docker.m.daocloud.io/library/postgres:16-alpine"), "本地构建 Compose 未使用国内 PostgreSQL 镜像");
         validateChinaBuildSources(app.build?.args, violations, "本地构建 Compose");
     }
 
     if (profile.hostNetwork) {
-        ensure(app.network_mode === "host", "宝塔 app 必须使用 host 网络");
-        ensure(worker.network_mode === "host", "宝塔 generation-worker 必须使用 host 网络");
-        ensure("VENLINKS_TRUSTED_PROXY_HOPS" in appEnvironment, "宝塔拓扑缺少反向代理层数配置");
+        ensure(app.network_mode === "host", "宿主机数据库拓扑的 app 必须使用 host 网络");
+        ensure(worker.network_mode === "host", "宿主机数据库拓扑的 generation-worker 必须使用 host 网络");
+        ensure("VENLINKS_TRUSTED_PROXY_HOPS" in appEnvironment, "宿主机数据库拓扑缺少反向代理层数配置");
     } else {
-        ensure(!app.network_mode && !worker.network_mode, "宝塔专用 host 网络不得泄漏到其他拓扑");
-        ensure(!("VENLINKS_TRUSTED_PROXY_HOPS" in appEnvironment), "宝塔专用反向代理默认值不得泄漏到其他拓扑");
+        ensure(!app.network_mode && !worker.network_mode, "host 网络不得泄漏到非宿主机数据库拓扑");
+        ensure(!("VENLINKS_TRUSTED_PROXY_HOPS" in appEnvironment), "宿主机数据库拓扑的反向代理默认值不得泄漏到其他拓扑");
         ensure(
             app.ports?.some((port) => String(port).includes("${VENLINKS_HOST_PORT:-3002}:3000")),
             "非 host 网络 Compose 必须通过 VENLINKS_HOST_PORT 映射容器 3000 端口",

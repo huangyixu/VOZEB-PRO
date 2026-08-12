@@ -85,11 +85,17 @@ docker compose -f docker-compose.local.yml build app
 docker compose -f docker-compose.local.yml up -d --no-build
 ```
 
-本地构建 Compose 默认使用中国大陆可访问的 DaoCloud Node/PostgreSQL 镜像、npmmirror npm 源和阿里云 Debian 源，避免直接访问 Docker Hub、npmjs 和 Debian 官方源。需要使用私有镜像或其他区域镜像时，在 `.env` 覆盖：
+本地构建 Compose 连接宿主机已有 PostgreSQL（例如 1Panel），只构建并运行 App 与 Worker，不再创建项目 PostgreSQL 容器。它默认使用中国大陆可访问的 DaoCloud Node 镜像、npmmirror npm 源和阿里云 Debian 源。先配置宿主机数据库连接：
+
+```dotenv
+DATABASE_URL=postgres://用户:密码@127.0.0.1:5432/数据库
+VENLINKS_DATABASE_SSL=0
+```
+
+需要使用私有镜像或其他区域镜像时，在 `.env` 覆盖：
 
 ```dotenv
 VENLINKS_NODE_IMAGE=docker.m.daocloud.io/library/node:22-bookworm-slim
-VENLINKS_POSTGRES_IMAGE=docker.m.daocloud.io/library/postgres:16-alpine
 VENLINKS_NPM_REGISTRY=https://registry.npmmirror.com
 VENLINKS_DEBIAN_MIRROR=http://mirrors.aliyun.com/debian
 VENLINKS_DEBIAN_SECURITY_MIRROR=http://mirrors.aliyun.com/debian-security
@@ -170,11 +176,11 @@ docker compose -f docker-compose.local.yml build --no-cache app
 docker compose -f docker-compose.local.yml up -d --no-build
 ```
 
-更新时不要覆盖已有 `.env`，尤其要保留 `POSTGRES_PASSWORD`、`VENLINKS_ENCRYPTION_KEY` 和 `VENLINKS_MAINTENANCE_TOKEN`。不要执行 `docker compose down -v`，否则会删除数据库和媒体数据卷；更新前应备份 PostgreSQL 和 `venlinks-data`。
+更新时不要覆盖已有 `.env`，尤其要保留 `DATABASE_URL`、`VENLINKS_ENCRYPTION_KEY` 和 `VENLINKS_MAINTENANCE_TOKEN`。不要执行 `docker compose down -v`，否则会删除媒体数据卷；更新前应备份 PostgreSQL 和 `venlinks-data`。
 
 ## 数据卷
 
-- `venlinks-postgres`：PostgreSQL 主库。
+- `venlinks-postgres`：仅默认内置数据库编排使用；1Panel/外部数据库不使用该卷。
 - `venlinks-data`：服务器媒体副本、文件模式数据和运行期文件。
 
 Canvas、“我的素材”、短剧和工作台记录保存在 PostgreSQL，媒体位于 `venlinks-data` 数据卷。生产备份必须同时覆盖 PostgreSQL 与该数据卷。

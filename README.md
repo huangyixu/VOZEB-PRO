@@ -439,7 +439,7 @@ docker compose ps
 
 打开 `https://你的域名/install`，依次检查数据库、初始化表结构并创建首个管理员。
 
-需要在中国大陆服务器直接从源码构建时，使用本地构建 Compose。它默认通过 DaoCloud 拉取 Node/PostgreSQL，通过 npmmirror 安装 pnpm 依赖，并通过阿里云镜像安装 Debian 软件包：
+需要在中国大陆服务器直接从源码构建并连接宿主机 PostgreSQL（例如 1Panel）时，使用本地构建 Compose。它默认通过 DaoCloud 拉取 Node，通过 npmmirror 安装 pnpm 依赖，并通过阿里云镜像安装 Debian 软件包。先在 `.env` 中把 `DATABASE_URL` 配置为宿主机数据库地址，例如 `postgres://user:password@127.0.0.1:5432/venlinks`：
 
 ```bash
 docker compose -f docker-compose.local.yml build app
@@ -447,7 +447,7 @@ docker compose -f docker-compose.local.yml up -d --no-build
 docker compose -f docker-compose.local.yml ps
 ```
 
-镜像地址都可在 `.env` 中用 `VENLINKS_NODE_IMAGE`、`VENLINKS_POSTGRES_IMAGE`、`VENLINKS_NPM_REGISTRY`、`VENLINKS_DEBIAN_MIRROR` 和 `VENLINKS_DEBIAN_SECURITY_MIRROR` 覆盖。已有部署必须保留原 `.env` 中的数据库密码、加密密钥和维护令牌。
+镜像与软件源都可在 `.env` 中用 `VENLINKS_NODE_IMAGE`、`VENLINKS_NPM_REGISTRY`、`VENLINKS_DEBIAN_MIRROR` 和 `VENLINKS_DEBIAN_SECURITY_MIRROR` 覆盖。该编排只启动 App 与 Worker，不会创建 PostgreSQL 容器。已有部署必须保留原 `.env` 中的数据库连接、加密密钥和维护令牌。
 
 以后拉取新代码并更新源码构建部署时执行：
 
@@ -460,7 +460,7 @@ docker compose -f docker-compose.local.yml ps
 
 Docker 只会复用内容未变化的构建层。应用源码变化后，`COPY` 源码及其后的 Next.js 生产构建层会自动失效并重新执行，不会继续使用旧应用代码；依赖文件未变化时仍可复用耗时的依赖安装层。构建完成后必须执行上面的 `up -d --no-build`，让运行中的容器切换到新镜像。只有怀疑缓存异常时才使用 `docker compose -f docker-compose.local.yml build --no-cache app`。
 
-Docker 默认把应用发布到宿主机 `3002` 端口；需要其他端口时修改 `.env` 中的 `VENLINKS_HOST_PORT`。容器内部、健康检查和生成 Worker 始终使用 `3000`，不需要同步修改。
+本地构建编排使用 host 网络，应用默认监听宿主机 `127.0.0.1:3002`，可由 1Panel 或 Nginx 反向代理；需要其他端口时设置 `VENLINKS_HOST_PORT`，健康检查和生成 Worker 会同步使用该端口。
 
 ### 宝塔 PostgreSQL
 

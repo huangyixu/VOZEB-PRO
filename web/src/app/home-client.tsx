@@ -10,7 +10,6 @@ import { AuthForm } from "@/components/auth/auth-form";
 import { SiteLogo } from "@/components/layout/site-logo";
 import { AnimatedThemeToggler } from "@/components/ui/animated-theme-toggler";
 import { landingNavigationTools, navigationTools } from "@/constant/navigation-tools";
-import { VENLINKS_QQ_GROUP_URL } from "@/constant/community";
 import { fetchPrompts, type Prompt } from "@/services/api/prompts";
 import { type LocalUser, useUserStore } from "@/stores/use-user-store";
 import { useThemeStore } from "@/stores/use-theme-store";
@@ -72,11 +71,7 @@ const defaultSite: {
     privacyUrl: "/privacy",
     homeShowcaseMode: "random",
     homeShowcaseItems: [],
-    friendLinks: [
-        { id: "venlinks-home", label: "VenLinks", url: "https://www.venlinks.com/", enabled: true },
-        { id: "qq-venlinks-open-source", label: "VenLinks 开源交流 QQ 群", url: VENLINKS_QQ_GROUP_URL, enabled: true },
-        { id: "linux-do", label: "Linux.do", url: "https://linux.do/", enabled: true },
-    ],
+    friendLinks: [],
     socials: {
         email: { enabled: true, label: "邮箱联系", url: "mailto:csyqlz@gmail.com" },
         telegram: { enabled: false, label: "Telegram", url: "" },
@@ -92,7 +87,7 @@ const socialIconByKey: Record<SiteSocialKey, ReactNode> = {
     instagram: <Camera className="size-4" />,
 };
 
-const publicPrefetchRoutes = ["/gallery", "/login", "/register", "/forgot-password", "/privacy", "/terms"];
+const publicPrefetchRoutes = ["/gallery", "/login", "/register", "/forgot-password", "/privacy"];
 const authenticatedPrefetchRoutes = navigationTools.map((tool) => `/${tool.slug}`);
 const heroValueItems = [
     { icon: <ShoppingBag className="size-4" />, label: "商业视觉", tone: "commerce" },
@@ -588,9 +583,6 @@ export default function HomePage() {
                             <div className="landing-footer-link-row landing-footer-policy-links">
                                 <Link href="/announcements" className="landing-footer-link">
                                     网站公告
-                                </Link>
-                                <Link href={site.termsUrl || "/terms"} className="landing-footer-link">
-                                    使用条款
                                 </Link>
                                 <Link href={site.privacyUrl || "/privacy"} className="landing-footer-link">
                                     隐私政策

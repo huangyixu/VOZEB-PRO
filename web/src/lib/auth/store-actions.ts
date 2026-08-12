@@ -43,7 +43,6 @@ import {
     type SiteSocialKey,
     type SiteSocialSettings,
     DEFAULT_SITE_SOCIALS,
-    DEFAULT_SITE_FRIEND_LINKS,
     type MailSettings,
     type PublicUser,
     type PublicUserSummary,

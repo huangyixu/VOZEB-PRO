@@ -453,7 +453,7 @@ export function normalizeShowcaseTags(value: unknown): string[] {
 
 export function normalizeSiteFriendLinks(settings: unknown): SiteFriendLink[] {
     const links = Array.isArray(settings) ? settings : DEFAULT_SITE_FRIEND_LINKS;
-    const normalized = links
+    return links
         .map((link, index) => {
             const value = link as Partial<SiteFriendLink>;
             return {
@@ -465,18 +465,6 @@ export function normalizeSiteFriendLinks(settings: unknown): SiteFriendLink[] {
         })
         .filter((link) => link.url)
         .slice(0, 12);
-    for (const link of DEFAULT_SITE_FRIEND_LINKS) {
-        if (normalized.some((item) => item.id === link.id || item.url.replace(/\/$/, "") === link.url.replace(/\/$/, ""))) continue;
-        normalized.push(link);
-    }
-    const defaultOrdered = DEFAULT_SITE_FRIEND_LINKS.flatMap((link) => {
-        const normalizedUrl = link.url.replace(/\/$/, "");
-        const matched = normalized.find((item) => item.id === link.id || item.url.replace(/\/$/, "") === normalizedUrl);
-        return matched ? [matched] : [];
-    });
-    const defaultKeys = new Set(DEFAULT_SITE_FRIEND_LINKS.flatMap((link) => [link.id, link.url.replace(/\/$/, "")]));
-    const others = normalized.filter((link) => !defaultKeys.has(link.id) && !defaultKeys.has(link.url.replace(/\/$/, "")));
-    return [...defaultOrdered, ...others].slice(0, 12);
 }
 
 export function normalizeSiteSocials(settings: Partial<SiteSocialSettings> | undefined): SiteSocialSettings {

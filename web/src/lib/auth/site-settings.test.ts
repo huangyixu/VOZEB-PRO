@@ -21,13 +21,23 @@ describe("site settings", () => {
         expect(settings).toMatchObject({ title: "VenLinks", seoTitle: "VenLinks", logoUrl: "/logo.png", iconUrl: "/icon.png" });
     });
 
-    it("defaults public contacts to the VenLinks email and QQ group", () => {
+    it("defaults public contacts without friend links", () => {
         const settings = normalizeSiteSettings({});
 
         expect(settings.socials.email).toMatchObject({ enabled: true, url: "mailto:csyqlz@gmail.com" });
         expect(settings.socials.telegram).toMatchObject({ enabled: false, url: "" });
         expect(settings.socials.x).toMatchObject({ enabled: false, url: "" });
         expect(settings.socials.instagram).toMatchObject({ enabled: false, url: "" });
-        expect(settings.friendLinks).toContainEqual(expect.objectContaining({ id: "qq-venlinks-open-source", url: "https://qm.qq.com/q/9MVLTxuRd6", enabled: true }));
+        expect(settings.friendLinks).toEqual([]);
+    });
+
+    it("keeps an explicitly emptied friend-link list empty", () => {
+        expect(normalizeSiteSettings({ friendLinks: [] }).friendLinks).toEqual([]);
+    });
+
+    it("preserves only explicitly configured friend links", () => {
+        const configured = [{ id: "custom", label: "示例", url: "https://example.com/", enabled: true }];
+
+        expect(normalizeSiteSettings({ friendLinks: configured }).friendLinks).toEqual(configured);
     });
 });

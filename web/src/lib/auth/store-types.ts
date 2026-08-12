@@ -1,7 +1,6 @@
 export type UserRole = "admin" | "user";
 export type UserStatus = "active" | "disabled";
 import type { GlobalAiOpcPresetId } from "@/lib/globalaiopc-catalog";
-import { VENLINKS_QQ_GROUP_URL } from "@/constant/community";
 
 export type ApiCallFormat = "openai" | "gemini";
 export type SystemChannelProtocol = "auto" | "openai" | "sub2api" | "newapi" | "qingyan" | "globalaiopc" | "seedance" | "stable-diffusion" | "volcengine-video" | "seedance-special" | "custom" | "compatible";
@@ -333,11 +332,7 @@ export const DEFAULT_SITE_SOCIALS: SiteSocialSettings = {
     instagram: { enabled: false, label: "Instagram", url: "" },
 };
 
-export const DEFAULT_SITE_FRIEND_LINKS: SiteFriendLink[] = [
-    { id: "venlinks-home", label: "VenLinks", url: "https://www.venlinks.com/", enabled: true },
-    { id: "qq-venlinks-open-source", label: "VenLinks 开源交流 QQ 群", url: VENLINKS_QQ_GROUP_URL, enabled: true },
-    { id: "linux-do", label: "Linux.do", url: "https://linux.do/", enabled: true },
-];
+export const DEFAULT_SITE_FRIEND_LINKS: SiteFriendLink[] = [];
 
 export type MailSettings = {
     provider: string;

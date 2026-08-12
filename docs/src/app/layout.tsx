@@ -4,13 +4,13 @@ import "./global.css";
 
 export const metadata: Metadata = {
   title: {
-    default: "VOZEB PRO 文档",
-    template: "%s | VOZEB PRO 文档",
+    default: "VenLinks PRO 文档",
+    template: "%s | VenLinks PRO 文档",
   },
   description:
-    "VOZEB PRO - AI创意工作台官方文档，提供图片、视频、音频、短剧等多种AI生成能力的完整指南。",
+    "VenLinks PRO - AI创意工作台官方文档，提供图片、视频、音频、短剧等多种AI生成能力的完整指南。",
   keywords: [
-    "VOZEB PRO",
+    "VenLinks PRO",
     "AI创意",
     "图片生成",
     "视频生成",
@@ -18,11 +18,11 @@ export const metadata: Metadata = {
     "AI工作台",
     "文档",
   ],
-  authors: [{ name: "VOZEB Team" }],
-  creator: "VOZEB Team",
-  publisher: "VOZEB",
+  authors: [{ name: "VenLinks Team" }],
+  creator: "VenLinks Team",
+  publisher: "VenLinks",
   metadataBase: new URL(
-    process.env.NEXT_PUBLIC_SITE_URL || "https://docs.vozeb.pro",
+    process.env.NEXT_PUBLIC_SITE_URL || "https://docs.venlinks.pro",
   ),
   alternates: {
     canonical: "/",
@@ -36,15 +36,15 @@ export const metadata: Metadata = {
     type: "website",
     locale: "zh_CN",
     url: "/",
-    title: "VOZEB PRO 文档",
-    description: "VOZEB PRO - AI创意工作台官方文档",
-    siteName: "VOZEB PRO 文档",
+    title: "VenLinks PRO 文档",
+    description: "VenLinks PRO - AI创意工作台官方文档",
+    siteName: "VenLinks PRO 文档",
     images: ["/logo.svg"],
   },
   twitter: {
     card: "summary_large_image",
-    title: "VOZEB PRO 文档",
-    description: "VOZEB PRO - AI创意工作台官方文档",
+    title: "VenLinks PRO 文档",
+    description: "VenLinks PRO - AI创意工作台官方文档",
     images: ["/logo.svg"],
   },
   robots: {

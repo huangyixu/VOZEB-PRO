@@ -487,7 +487,7 @@ export function responseOutputText(payload: { output_text?: string; output?: Arr
 }
 
 export function readFunctionCallResult(argumentsText: string, headers: Headers): AgentFunctionCallResult {
-    const pointsRemaining = Number(headers.get("x-vozeb-pro-points-remaining"));
+    const pointsRemaining = Number(headers.get("x-venlinks-pro-points-remaining"));
     return {
         arguments: argumentsText,
         pointsRemaining: Number.isFinite(pointsRemaining) ? pointsRemaining : undefined,

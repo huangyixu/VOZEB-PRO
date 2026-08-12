@@ -86,8 +86,8 @@ describe("workbench agent model routing", () => {
         const headers = new Headers(init.headers);
 
         expect(response.status).toBe(200);
-        expect(headers.get("x-vozeb-pro-logical-model")).toBe("planner");
-        expect(headers.get("x-vozeb-pro-points-idempotency-key")).toMatch(/^workbench-plan:[a-f0-9]{32}:chat-json$/);
+        expect(headers.get("x-venlinks-pro-logical-model")).toBe("planner");
+        expect(headers.get("x-venlinks-pro-points-idempotency-key")).toMatch(/^workbench-plan:[a-f0-9]{32}:chat-json$/);
         expect(init.signal).toBeInstanceOf(AbortSignal);
     });
 
@@ -274,7 +274,7 @@ describe("workbench agent model routing", () => {
         const response = await POST(workbenchRequest({ requestId: "same-channel-failover", prompt: "规划商品图", workspace: "image" }));
         const calls = mocks.fetchInternalApi.mock.calls.map(([, init]) => ({
             model: (JSON.parse(String(init?.body)) as { model?: string }).model,
-            key: new Headers(init?.headers).get("x-vozeb-pro-points-idempotency-key"),
+            key: new Headers(init?.headers).get("x-venlinks-pro-points-idempotency-key"),
         }));
 
         expect(response.status).toBe(200);
@@ -317,7 +317,7 @@ describe("workbench agent model routing", () => {
 
     it("rejects prose chat output instead of guessing generation parameters locally", async () => {
         mocks.fetchInternalApi.mockResolvedValueOnce(
-            Response.json({ choices: [{ message: { content: "Use a warm composition and generate three images." } }] }, { headers: { "x-vozeb-pro-points-cost": "1", "x-vozeb-pro-points-record-id": "points-workbench-1" } }),
+            Response.json({ choices: [{ message: { content: "Use a warm composition and generate three images." } }] }, { headers: { "x-venlinks-pro-points-cost": "1", "x-venlinks-pro-points-record-id": "points-workbench-1" } }),
         );
 
         const response = await POST(workbenchRequest({ prompt: "规划咖啡海报", workspace: "image" }));
@@ -328,7 +328,7 @@ describe("workbench agent model routing", () => {
     });
 
     it("refunds the free-text quota when a zero-cost planner response is invalid", async () => {
-        mocks.fetchInternalApi.mockResolvedValueOnce(Response.json({ choices: [{ message: { content: "not structured" } }] }, { headers: { "x-vozeb-pro-points-cost": "0", "x-vozeb-pro-points-record-id": "points-workbench-free" } }));
+        mocks.fetchInternalApi.mockResolvedValueOnce(Response.json({ choices: [{ message: { content: "not structured" } }] }, { headers: { "x-venlinks-pro-points-cost": "0", "x-venlinks-pro-points-record-id": "points-workbench-free" } }));
 
         const response = await POST(workbenchRequest({ requestId: "free-plan", prompt: "规划咖啡海报", workspace: "image" }));
 
@@ -348,7 +348,7 @@ describe("workbench agent model routing", () => {
                         },
                     ],
                 },
-                { headers: { "x-vozeb-pro-points-cost": "2", "x-vozeb-pro-points-record-id": "points-save-failed" } },
+                { headers: { "x-venlinks-pro-points-cost": "2", "x-venlinks-pro-points-record-id": "points-save-failed" } },
             ),
         );
         mocks.appendWorkbenchExchangeForUser.mockRejectedValueOnce(new Error("会话写入失败"));

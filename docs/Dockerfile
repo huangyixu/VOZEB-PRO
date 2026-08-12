@@ -1,21 +1,21 @@
-ARG VOZEB_PRO_NODE_IMAGE=node:22-bookworm-slim
-ARG VOZEB_PRO_NPM_REGISTRY=https://registry.npmjs.org
+ARG VENLINKS_PRO_NODE_IMAGE=node:22-bookworm-slim
+ARG VENLINKS_PRO_NPM_REGISTRY=https://registry.npmjs.org
 
-FROM ${VOZEB_PRO_NODE_IMAGE} AS docs-build
+FROM ${VENLINKS_PRO_NODE_IMAGE} AS docs-build
 
 WORKDIR /app
-ARG VOZEB_PRO_NPM_REGISTRY
-RUN npm install --global pnpm@11.9.0 --registry=${VOZEB_PRO_NPM_REGISTRY} \
-    && pnpm config set registry ${VOZEB_PRO_NPM_REGISTRY}
+ARG VENLINKS_PRO_NPM_REGISTRY
+RUN npm install --global pnpm@11.9.0 --registry=${VENLINKS_PRO_NPM_REGISTRY} \
+    && pnpm config set registry ${VENLINKS_PRO_NPM_REGISTRY}
 COPY docs/package.json docs/pnpm-lock.yaml docs/pnpm-workspace.yaml ./
 RUN --mount=type=cache,target=/pnpm/store pnpm config set store-dir /pnpm/store \
-    && pnpm install --frozen-lockfile --ignore-scripts --registry=${VOZEB_PRO_NPM_REGISTRY}
+    && pnpm install --frozen-lockfile --ignore-scripts --registry=${VENLINKS_PRO_NPM_REGISTRY}
 COPY docs ./
 COPY CHANGELOG.md /CHANGELOG.md
 RUN pnpm run postinstall
 RUN pnpm run build
 
-FROM ${VOZEB_PRO_NODE_IMAGE}
+FROM ${VENLINKS_PRO_NODE_IMAGE}
 
 WORKDIR /app
 ENV NODE_ENV=production

@@ -1,6 +1,6 @@
 services:
   docs:
-    image: ghcr.io/csyqlz/vozeb-pro-docs:latest
+    image: ghcr.io/csyqlz/venlinks-pro-docs:latest
     ports:
       - "3001:3000"
     restart: unless-stopped

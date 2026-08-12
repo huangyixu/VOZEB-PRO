@@ -8,8 +8,8 @@ describe("admin backup API", () => {
     });
 
     it("uses and sanitizes the server backup filename", () => {
-        expect(adminBackupFileName('attachment; filename="vozeb-pro:backup.json"')).toBe("vozeb-pro-backup.json");
-        expect(adminBackupFileName("attachment; filename*=UTF-8''vozeb-pro-%E5%A4%87%E4%BB%BD.json")).toBe("vozeb-pro-备份.json");
+        expect(adminBackupFileName('attachment; filename="venlinks-pro:backup.json"')).toBe("venlinks-pro-backup.json");
+        expect(adminBackupFileName("attachment; filename*=UTF-8''venlinks-pro-%E5%A4%87%E4%BB%BD.json")).toBe("venlinks-pro-备份.json");
     });
 
     it("downloads the backup through the administrator endpoint", async () => {

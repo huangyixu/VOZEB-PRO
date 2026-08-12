@@ -10,7 +10,7 @@ import { AuthForm } from "@/components/auth/auth-form";
 import { SiteLogo } from "@/components/layout/site-logo";
 import { AnimatedThemeToggler } from "@/components/ui/animated-theme-toggler";
 import { landingNavigationTools, navigationTools } from "@/constant/navigation-tools";
-import { VOZEB_QQ_GROUP_URL } from "@/constant/community";
+import { VENLINKS_QQ_GROUP_URL } from "@/constant/community";
 import { fetchPrompts, type Prompt } from "@/services/api/prompts";
 import { type LocalUser, useUserStore } from "@/stores/use-user-store";
 import { useThemeStore } from "@/stores/use-theme-store";
@@ -64,17 +64,17 @@ const defaultSite: {
     friendLinks: SiteFriendLink[];
     socials: SiteSocialSettings;
 } = {
-    title: "VOZEB PRO",
+    title: "VenLinks PRO",
     logoUrl: "/logo.svg",
     seoDescription: "面向 Agent、图片、视频、画布与短剧生产的一体化 AI 创作工作台",
-    footerCopyright: "© 2026 VOZEB PRO. All rights reserved.",
+    footerCopyright: "© 2026 VenLinks PRO. All rights reserved.",
     termsUrl: "/terms",
     privacyUrl: "/privacy",
     homeShowcaseMode: "random",
     homeShowcaseItems: [],
     friendLinks: [
-        { id: "vozeb-pro-home", label: "VOZEB PRO", url: "https://www.vozeb.com/", enabled: true },
-        { id: "qq-vozeb-open-source", label: "VOZEB 开源交流 QQ 群", url: VOZEB_QQ_GROUP_URL, enabled: true },
+        { id: "venlinks-pro-home", label: "VenLinks PRO", url: "https://www.venlinks.com/", enabled: true },
+        { id: "qq-venlinks-open-source", label: "VenLinks 开源交流 QQ 群", url: VENLINKS_QQ_GROUP_URL, enabled: true },
         { id: "linux-do", label: "Linux.do", url: "https://linux.do/", enabled: true },
     ],
     socials: {
@@ -141,7 +141,7 @@ export default function HomePage() {
     const showcaseCards = homeShowcaseItems;
     const previewItems = promptShowcase.filter((item) => item.coverUrl);
     const hasVerifiedUser = sessionReady && Boolean(user);
-    const siteTitle = site.title || "VOZEB PRO";
+    const siteTitle = site.title || "VenLinks PRO";
 
     const moveNavIndicator = useCallback((index: number) => {
         const item = navItemRefs.current[index];

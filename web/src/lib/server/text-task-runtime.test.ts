@@ -47,14 +47,14 @@ describe("text task runtime recovery", () => {
 
     it("preserves maintenance authorization for the internal system proxy", () => {
         const token = "m".repeat(32);
-        vi.stubEnv("VOZEB_PRO_MAINTENANCE_TOKEN", token);
+        vi.stubEnv("VENLINKS_PRO_MAINTENANCE_TOKEN", token);
 
         const headers = taskHeaders({ ...openAiConfig("channel-one", "/api/ai/system/channel-one"), apiKey: "system" }, maintenanceWorkerContext("user-one"), "text-task:test:attempt:1");
 
         expect(headers.get("authorization")).toBe(`Bearer ${token}`);
-        expect(headers.get("x-vozeb-pro-worker-user-id")).toBe("user-one");
-        expect(headers.get("x-vozeb-pro-logical-model")).toBe("text-model");
-        expect(headers.get("x-vozeb-pro-points-idempotency-key")).toBe("text-task:test:attempt:1");
+        expect(headers.get("x-venlinks-pro-worker-user-id")).toBe("user-one");
+        expect(headers.get("x-venlinks-pro-logical-model")).toBe("text-model");
+        expect(headers.get("x-venlinks-pro-points-idempotency-key")).toBe("text-task:test:attempt:1");
     });
 
     it("completes through a live OpenAI-compatible fixture", async () => {
@@ -164,7 +164,7 @@ describe("text task runtime recovery", () => {
         const invalid = { episode: { outline: "空结果" }, characters: [], scenes: [], props: [], clues: [], shots: [] };
         const fetchMock = vi
             .fn()
-            .mockResolvedValueOnce(toolResponse(invalid, { "x-vozeb-pro-points-cost": "0", "x-vozeb-pro-points-record-id": "invalid-record" }))
+            .mockResolvedValueOnce(toolResponse(invalid, { "x-venlinks-pro-points-cost": "0", "x-venlinks-pro-points-record-id": "invalid-record" }))
             .mockResolvedValueOnce(toolResponse(validDramaContent()));
         vi.stubGlobal("fetch", fetchMock);
 
@@ -180,7 +180,7 @@ describe("text task runtime recovery", () => {
         state = dramaTextTask(structuredConfig(responsesConfig("channel-one", "https://one.example")), [structuredConfig(openAiConfig("channel-two", "https://two.example"))]);
         const fetchMock = vi
             .fn()
-            .mockResolvedValueOnce(Response.json({ status: "incomplete", incomplete_details: { reason: "max_output_tokens" } }, { headers: { "x-vozeb-pro-points-cost": "1", "x-vozeb-pro-points-record-id": "truncated-record" } }))
+            .mockResolvedValueOnce(Response.json({ status: "incomplete", incomplete_details: { reason: "max_output_tokens" } }, { headers: { "x-venlinks-pro-points-cost": "1", "x-venlinks-pro-points-record-id": "truncated-record" } }))
             .mockResolvedValueOnce(toolResponse(validDramaContent()));
         vi.stubGlobal("fetch", fetchMock);
 
@@ -195,7 +195,7 @@ describe("text task runtime recovery", () => {
         const recordId = `truncated-${finishReason}`;
         const fetchMock = vi
             .fn()
-            .mockResolvedValueOnce(toolResponse(validDramaContent(), { "x-vozeb-pro-points-cost": "1", "x-vozeb-pro-points-record-id": recordId }, finishReason))
+            .mockResolvedValueOnce(toolResponse(validDramaContent(), { "x-venlinks-pro-points-cost": "1", "x-venlinks-pro-points-record-id": recordId }, finishReason))
             .mockResolvedValueOnce(toolResponse(validDramaContent()));
         vi.stubGlobal("fetch", fetchMock);
 
@@ -247,7 +247,7 @@ describe("text task runtime recovery", () => {
     });
 
     it("refunds a zero-point recorded charge when the upstream task fails", async () => {
-        const headers = { "x-vozeb-pro-points-cost": "0", "x-vozeb-pro-points-record-id": "record-zero" };
+        const headers = { "x-venlinks-pro-points-cost": "0", "x-venlinks-pro-points-record-id": "record-zero" };
         const fetchMock = vi
             .fn()
             .mockResolvedValueOnce(Response.json({ task_id: "upstream-zero", status: "queued" }, { headers }))

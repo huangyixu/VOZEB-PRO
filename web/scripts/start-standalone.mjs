@@ -16,8 +16,8 @@ const runtime = generationRuntimeEnvironment({
         ...process.env,
         PORT: process.env.PORT || "3000",
         HOSTNAME: process.env.HOSTNAME || "0.0.0.0",
-        VOZEB_PRO_DATA_DIR: process.env.VOZEB_PRO_DATA_DIR || path.join(webRoot, ".data"),
-        VOZEB_PRO_INTERNAL_ORIGIN: process.env.VOZEB_PRO_INTERNAL_ORIGIN || `http://127.0.0.1:${process.env.PORT || "3000"}`,
+        VENLINKS_PRO_DATA_DIR: process.env.VENLINKS_PRO_DATA_DIR || path.join(webRoot, ".data"),
+        VENLINKS_PRO_INTERNAL_ORIGIN: process.env.VENLINKS_PRO_INTERNAL_ORIGIN || `http://127.0.0.1:${process.env.PORT || "3000"}`,
     },
 });
 process.exitCode = await superviseGenerationRuntime({

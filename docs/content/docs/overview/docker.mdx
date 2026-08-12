@@ -1,16 +1,16 @@
 ---
 title: Docker 部署
-description: 使用 Docker Compose、PostgreSQL 和发布镜像部署 VOZEB PRO
+description: 使用 Docker Compose、PostgreSQL 和发布镜像部署 VenLinks PRO
 ---
 
 # Docker 部署
 
-主 Compose 会启动 VOZEB PRO 和 PostgreSQL 16。正式部署前先复制并修改 `.env`。
+主 Compose 会启动 VenLinks PRO 和 PostgreSQL 16。正式部署前先复制并修改 `.env`。
 
 应用容器内部固定监听 `3000`，宿主机默认使用 `3002`，可通过 `.env` 调整：
 
 ```dotenv
-VOZEB_PRO_HOST_PORT=3002
+VENLINKS_PRO_HOST_PORT=3002
 ```
 
 Nginx 或宝塔反向代理应连接 `127.0.0.1:3002`。修改宿主机端口不会影响容器健康检查或 generation-worker。
@@ -18,17 +18,17 @@ Nginx 或宝塔反向代理应连接 `127.0.0.1:3002`。修改宿主机端口不
 ## 安装
 
 ```bash
-git clone https://github.com/csyqlz/VOZEB-PRO.git
-cd VOZEB-PRO
+git clone https://github.com/csyqlz/VenLinks-PRO.git
+cd VenLinks-PRO
 cp .env.example .env
 ```
 
 必填：
 
 ```dotenv
-NEXT_PUBLIC_SITE_URL=https://vozeb-pro.example.com
+NEXT_PUBLIC_SITE_URL=https://venlinks-pro.example.com
 POSTGRES_PASSWORD=replace-with-a-strong-database-password
-VOZEB_PRO_ENCRYPTION_KEY=填写 openssl rand -hex 32 的输出
+VENLINKS_PRO_ENCRYPTION_KEY=填写 openssl rand -hex 32 的输出
 ```
 
 启动：
@@ -44,8 +44,8 @@ docker compose ps
 ## Compose 服务
 
 ```text
-postgres -> PostgreSQL 16，数据卷 vozeb-pro-postgres
-app      -> VOZEB PRO standalone，数据卷 vozeb-pro-data
+postgres -> PostgreSQL 16，数据卷 venlinks-pro-postgres
+app      -> VenLinks PRO standalone，数据卷 venlinks-pro-data
 ```
 
 应用通过容器网络连接：
@@ -76,7 +76,7 @@ docker compose -f docker-compose.baota.yml up -d
 
 宝塔 Compose 使用 host 网络，只启动 `app`，不创建项目 PostgreSQL 容器。默认 Compose 和外部数据库 Compose 的 3000 端口也只绑定 `127.0.0.1`，由 Nginx 或宝塔反向代理对外提供 HTTPS。
 
-宝塔单层 Nginx 反向代理默认使用 `VOZEB_PRO_TRUSTED_PROXY_HOPS=1`，用于登录、生成和媒体访问的真实 IP 限流。接入 CDN 或额外代理时按可信代理层数调整；只有客户端直接访问应用时才设置为 `0`。
+宝塔单层 Nginx 反向代理默认使用 `VENLINKS_PRO_TRUSTED_PROXY_HOPS=1`，用于登录、生成和媒体访问的真实 IP 限流。接入 CDN 或额外代理时按可信代理层数调整；只有客户端直接访问应用时才设置为 `0`。
 
 ## 本地构建镜像
 
@@ -88,11 +88,11 @@ docker compose -f docker-compose.local.yml up -d --no-build
 本地构建 Compose 默认使用中国大陆可访问的 DaoCloud Node/PostgreSQL 镜像、npmmirror npm 源和阿里云 Debian 源，避免直接访问 Docker Hub、npmjs 和 Debian 官方源。需要使用私有镜像或其他区域镜像时，在 `.env` 覆盖：
 
 ```dotenv
-VOZEB_PRO_NODE_IMAGE=docker.m.daocloud.io/library/node:22-bookworm-slim
-VOZEB_PRO_POSTGRES_IMAGE=docker.m.daocloud.io/library/postgres:16-alpine
-VOZEB_PRO_NPM_REGISTRY=https://registry.npmmirror.com
-VOZEB_PRO_DEBIAN_MIRROR=http://mirrors.aliyun.com/debian
-VOZEB_PRO_DEBIAN_SECURITY_MIRROR=http://mirrors.aliyun.com/debian-security
+VENLINKS_PRO_NODE_IMAGE=docker.m.daocloud.io/library/node:22-bookworm-slim
+VENLINKS_PRO_POSTGRES_IMAGE=docker.m.daocloud.io/library/postgres:16-alpine
+VENLINKS_PRO_NPM_REGISTRY=https://registry.npmmirror.com
+VENLINKS_PRO_DEBIAN_MIRROR=http://mirrors.aliyun.com/debian
+VENLINKS_PRO_DEBIAN_SECURITY_MIRROR=http://mirrors.aliyun.com/debian-security
 ```
 
 构建阶段需要安装依赖并执行 Next.js 生产构建，建议至少 2GB 内存。低内存服务器使用发布镜像。更新已有部署时不要重新生成 `.env`，必须保留数据库密码、加密密钥和维护令牌。
@@ -104,20 +104,20 @@ VOZEB_PRO_DEBIAN_SECURITY_MIRROR=http://mirrors.aliyun.com/debian-security
 默认使用带有 `prod-docker` 标签的 GitLab Runner，并采用以下服务器目录：
 
 ```text
-/home/workspace/VOZEB-PRO   # 持久源码构建目录，用于复用 Docker 缓存
-/opt/1panel/apps/vozeb-pro  # 部署配置目录，必须预先保存 .env
+/home/workspace/VenLinks-PRO   # 持久源码构建目录，用于复用 Docker 缓存
+/opt/1panel/apps/venlinks-pro  # 部署配置目录，必须预先保存 .env
 ```
 
 如果服务器目录不同，在 GitLab 项目的 CI/CD Variables 中覆盖 `SOURCE_DIR` 或 `DEPLOY_DIR`。两个目录必须预先创建并允许 Runner 用户写入，`DEPLOY_DIR/.env` 必须可读且保留已有数据库密码、加密密钥和维护令牌。
 
-作业会把当前提交同步到 `SOURCE_DIR`，使用国内镜像配置构建 `vozeb-pro:local`，然后让 Compose 根据新镜像更新 App 与 Worker 并等待整体健康检查；配置未变化的 PostgreSQL 容器不会被强制重建。命名数据卷不会被删除，已有 PostgreSQL 与媒体数据会继续保留。同一时间只允许一个 VOZEB PRO 生产部署作业运行。
+作业会把当前提交同步到 `SOURCE_DIR`，使用国内镜像配置构建 `venlinks-pro:local`，然后让 Compose 根据新镜像更新 App 与 Worker 并等待整体健康检查；配置未变化的 PostgreSQL 容器不会被强制重建。命名数据卷不会被删除，已有 PostgreSQL 与媒体数据会继续保留。同一时间只允许一个 VenLinks PRO 生产部署作业运行。
 
 ## 日志与检查
 
 ```bash
 docker compose logs -f app
 docker compose logs -f postgres
-docker compose exec postgres pg_isready -U vozeb_pro -d vozeb_pro
+docker compose exec postgres pg_isready -U venlinks_pro -d venlinks_pro
 ```
 
 安装页报数据库错误时，重点检查 `.env`、PostgreSQL 健康状态、数据库密码和 Host。浏览器只显示安全分类提示，完整连接错误保留在服务器日志。
@@ -138,7 +138,7 @@ Token 不得写入仓库或公开日志。
 反向代理应保留 `Host`、`X-Forwarded-Proto` 和 `X-Forwarded-For`。站点地址使用真实 HTTPS 域名：
 
 ```dotenv
-NEXT_PUBLIC_SITE_URL=https://vozeb-pro.example.com
+NEXT_PUBLIC_SITE_URL=https://venlinks-pro.example.com
 ```
 
 ## 更新
@@ -170,11 +170,11 @@ docker compose -f docker-compose.local.yml build --no-cache app
 docker compose -f docker-compose.local.yml up -d --no-build
 ```
 
-更新时不要覆盖已有 `.env`，尤其要保留 `POSTGRES_PASSWORD`、`VOZEB_PRO_ENCRYPTION_KEY` 和 `VOZEB_PRO_MAINTENANCE_TOKEN`。不要执行 `docker compose down -v`，否则会删除数据库和媒体数据卷；更新前应备份 PostgreSQL 和 `vozeb-pro-data`。
+更新时不要覆盖已有 `.env`，尤其要保留 `POSTGRES_PASSWORD`、`VENLINKS_PRO_ENCRYPTION_KEY` 和 `VENLINKS_PRO_MAINTENANCE_TOKEN`。不要执行 `docker compose down -v`，否则会删除数据库和媒体数据卷；更新前应备份 PostgreSQL 和 `venlinks-pro-data`。
 
 ## 数据卷
 
-- `vozeb-pro-postgres`：PostgreSQL 主库。
-- `vozeb-pro-data`：服务器媒体副本、文件模式数据和运行期文件。
+- `venlinks-pro-postgres`：PostgreSQL 主库。
+- `venlinks-pro-data`：服务器媒体副本、文件模式数据和运行期文件。
 
-Canvas、“我的素材”、短剧和工作台记录保存在 PostgreSQL，媒体位于 `vozeb-pro-data` 数据卷。生产备份必须同时覆盖 PostgreSQL 与该数据卷。
+Canvas、“我的素材”、短剧和工作台记录保存在 PostgreSQL，媒体位于 `venlinks-pro-data` 数据卷。生产备份必须同时覆盖 PostgreSQL 与该数据卷。

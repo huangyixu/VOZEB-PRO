@@ -66,7 +66,7 @@ function defaultSettings(): StoredObjectStorageSettings {
         endpoint: "",
         region: "us-east-1",
         bucket: "",
-        prefix: "vozeb-pro",
+        prefix: "venlinks-pro",
         accessKeyIdCiphertext: "",
         secretAccessKeyCiphertext: "",
         forcePathStyle: false,

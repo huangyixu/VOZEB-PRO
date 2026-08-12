@@ -458,7 +458,7 @@ export function normalizeSiteFriendLinks(settings: unknown): SiteFriendLink[] {
             const value = link as Partial<SiteFriendLink>;
             return {
                 id: normalizeText(value.id, `friend-${index + 1}`, 80),
-                label: normalizeText(value.url?.replace(/\/$/, "") === "https://www.vozeb.com" ? "VOZEB PRO" : value.label, "友情链接", 32),
+                label: normalizeText(value.url?.replace(/\/$/, "") === "https://www.venlinks.com" ? "VenLinks PRO" : value.label, "友情链接", 32),
                 url: normalizeLinkUrl(value.url, ""),
                 enabled: value.enabled !== false,
             };
@@ -523,9 +523,9 @@ export function normalizeText(value: unknown, fallback: string, maxLength: numbe
 }
 
 export function repairKnownMojibakeText(value: string) {
-    if (value.includes("VOZEB PRO") && value.includes("AI") && !value.includes("绘图") && value.includes(",")) return DEFAULT_SITE_SETTINGS.seoKeywords;
-    if (value.includes("VOZEB PRO") && value.includes("AI") && !value.includes("工作台")) return DEFAULT_SITE_SETTINGS.seoDescription;
-    if (value.includes("2026 VOZEB PRO") && !value.startsWith("©")) return "© 2026 VOZEB PRO. All rights reserved.";
+    if (value.includes("VenLinks PRO") && value.includes("AI") && !value.includes("绘图") && value.includes(",")) return DEFAULT_SITE_SETTINGS.seoKeywords;
+    if (value.includes("VenLinks PRO") && value.includes("AI") && !value.includes("工作台")) return DEFAULT_SITE_SETTINGS.seoDescription;
+    if (value.includes("2026 VenLinks PRO") && !value.startsWith("©")) return "© 2026 VenLinks PRO. All rights reserved.";
     if (value.startsWith("QQ ") && !value.includes("邮箱")) return "QQ 邮箱";
     return repairUtf8MojibakeText(value);
 }

@@ -1,6 +1,6 @@
 # 参与贡献
 
-感谢你愿意参与 VOZEB PRO。可以通过 Issue、Pull Request、文档补充、测试反馈或渠道适配样例帮助项目继续完善。
+感谢你愿意参与 VenLinks PRO。可以通过 Issue、Pull Request、文档补充、测试反馈或渠道适配样例帮助项目继续完善。
 
 ## 提交前
 

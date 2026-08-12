@@ -12,11 +12,11 @@ export const composeProfiles = [
 ];
 
 export const docsComposeProfiles = [
-    { file: "docs/docker-compose.yml", image: "ghcr.io/csyqlz/vozeb-pro-docs:latest" },
+    { file: "docs/docker-compose.yml", image: "ghcr.io/csyqlz/venlinks-pro-docs:latest" },
     { file: "docs/docker-compose.local.yml", build: { context: "..", dockerfile: "docs/Dockerfile" }, localBuild: true },
 ];
 
-const maintenanceToken = "${VOZEB_PRO_MAINTENANCE_TOKEN:?请在 .env 中配置至少 32 位维护令牌}";
+const maintenanceToken = "${VENLINKS_PRO_MAINTENANCE_TOKEN:?请在 .env 中配置至少 32 位维护令牌}";
 
 export function validateComposeContracts({ repoRoot }) {
     return composeProfiles.map((profile) => {
@@ -76,15 +76,15 @@ export function validateComposeContract(source, profile) {
     ensure(JSON.stringify(worker.command) === JSON.stringify(["node", "/app/web/scripts/generation-worker.mjs"]), "Worker 启动命令不正确");
     ensure(app.env_file?.includes(".env"), "app 必须读取 .env");
     ensure(worker.env_file?.includes(".env"), "generation-worker 必须读取 .env");
-    ensure(appEnvironment.VOZEB_PRO_MAINTENANCE_TOKEN === maintenanceToken, "app 未声明强制维护令牌");
-    ensure(workerEnvironment.VOZEB_PRO_MAINTENANCE_TOKEN === maintenanceToken, "generation-worker 未声明同一强制维护令牌");
-    ensure(workerEnvironment.VOZEB_PRO_WORKER_API_ORIGIN === profile.workerOrigin, `Worker API 地址必须为 ${profile.workerOrigin}`);
-    ensure(appEnvironment.VOZEB_PRO_DATABASE_PROVIDER === "postgres", "app 必须使用 PostgreSQL provider");
+    ensure(appEnvironment.VENLINKS_PRO_MAINTENANCE_TOKEN === maintenanceToken, "app 未声明强制维护令牌");
+    ensure(workerEnvironment.VENLINKS_PRO_MAINTENANCE_TOKEN === maintenanceToken, "generation-worker 未声明同一强制维护令牌");
+    ensure(workerEnvironment.VENLINKS_PRO_WORKER_API_ORIGIN === profile.workerOrigin, `Worker API 地址必须为 ${profile.workerOrigin}`);
+    ensure(appEnvironment.VENLINKS_PRO_DATABASE_PROVIDER === "postgres", "app 必须使用 PostgreSQL provider");
     ensure(typeof appEnvironment.DATABASE_URL === "string", "app 缺少 DATABASE_URL");
     ensure(!("DATABASE_URL" in workerEnvironment), "generation-worker 不应直接持有数据库连接串");
-    ensure(!("VOZEB_PRO_DATABASE_PROVIDER" in workerEnvironment), "generation-worker 不应直接访问数据库 provider");
-    ensure(app.volumes?.includes("vozeb-pro-data:/app/web/.data"), "app 缺少持久数据卷挂载");
-    ensure(Object.hasOwn(compose?.volumes || {}, "vozeb-pro-data"), "缺少 vozeb-pro-data 顶层数据卷");
+    ensure(!("VENLINKS_PRO_DATABASE_PROVIDER" in workerEnvironment), "generation-worker 不应直接访问数据库 provider");
+    ensure(app.volumes?.includes("venlinks-pro-data:/app/web/.data"), "app 缺少持久数据卷挂载");
+    ensure(Object.hasOwn(compose?.volumes || {}, "venlinks-pro-data"), "缺少 venlinks-pro-data 顶层数据卷");
     ensure(
         app.healthcheck?.test?.some((value) => String(value).includes("/api/health/live")),
         "app 健康检查必须调用 /api/health/live",
@@ -94,11 +94,11 @@ export function validateComposeContract(source, profile) {
     if (profile.embeddedPostgres) {
         ensure(Boolean(services.postgres), "默认或本地拓扑必须包含 PostgreSQL 服务");
         ensure(String(appEnvironment.DATABASE_URL || "").includes("@postgres:5432/"), "内置 PostgreSQL 拓扑必须连接 postgres 服务");
-        ensure(Object.hasOwn(compose?.volumes || {}, "vozeb-pro-postgres"), "内置 PostgreSQL 拓扑缺少数据库数据卷");
+        ensure(Object.hasOwn(compose?.volumes || {}, "venlinks-pro-postgres"), "内置 PostgreSQL 拓扑缺少数据库数据卷");
     } else {
         ensure(!services.postgres, "外部数据库拓扑不得内置 PostgreSQL 服务");
         ensure(String(appEnvironment.DATABASE_URL || "").startsWith("${DATABASE_URL:?"), "外部数据库拓扑必须显式要求 DATABASE_URL");
-        ensure(!Object.hasOwn(compose?.volumes || {}, "vozeb-pro-postgres"), "外部数据库拓扑不得声明无用的 PostgreSQL 数据卷");
+        ensure(!Object.hasOwn(compose?.volumes || {}, "venlinks-pro-postgres"), "外部数据库拓扑不得声明无用的 PostgreSQL 数据卷");
     }
 
     if (profile.localBuild) {
@@ -109,13 +109,13 @@ export function validateComposeContract(source, profile) {
     if (profile.hostNetwork) {
         ensure(app.network_mode === "host", "宝塔 app 必须使用 host 网络");
         ensure(worker.network_mode === "host", "宝塔 generation-worker 必须使用 host 网络");
-        ensure("VOZEB_PRO_TRUSTED_PROXY_HOPS" in appEnvironment, "宝塔拓扑缺少反向代理层数配置");
+        ensure("VENLINKS_PRO_TRUSTED_PROXY_HOPS" in appEnvironment, "宝塔拓扑缺少反向代理层数配置");
     } else {
         ensure(!app.network_mode && !worker.network_mode, "宝塔专用 host 网络不得泄漏到其他拓扑");
-        ensure(!("VOZEB_PRO_TRUSTED_PROXY_HOPS" in appEnvironment), "宝塔专用反向代理默认值不得泄漏到其他拓扑");
+        ensure(!("VENLINKS_PRO_TRUSTED_PROXY_HOPS" in appEnvironment), "宝塔专用反向代理默认值不得泄漏到其他拓扑");
         ensure(
-            app.ports?.some((port) => String(port).includes("${VOZEB_PRO_HOST_PORT:-3002}:3000")),
-            "非 host 网络 Compose 必须通过 VOZEB_PRO_HOST_PORT 映射容器 3000 端口",
+            app.ports?.some((port) => String(port).includes("${VENLINKS_PRO_HOST_PORT:-3002}:3000")),
+            "非 host 网络 Compose 必须通过 VENLINKS_PRO_HOST_PORT 映射容器 3000 端口",
         );
     }
 
@@ -124,8 +124,8 @@ export function validateComposeContract(source, profile) {
 }
 
 function validateChinaBuildSources(args, violations, label) {
-    if (!String(args?.VOZEB_PRO_NODE_IMAGE || "").includes("docker.m.daocloud.io/library/node:22-bookworm-slim")) violations.push(`${label} 未使用国内 Node 镜像`);
-    if (!String(args?.VOZEB_PRO_NPM_REGISTRY || "").includes("registry.npmmirror.com")) violations.push(`${label} 未使用国内 npm 镜像`);
+    if (!String(args?.VENLINKS_PRO_NODE_IMAGE || "").includes("docker.m.daocloud.io/library/node:22-bookworm-slim")) violations.push(`${label} 未使用国内 Node 镜像`);
+    if (!String(args?.VENLINKS_PRO_NPM_REGISTRY || "").includes("registry.npmmirror.com")) violations.push(`${label} 未使用国内 npm 镜像`);
 }
 
 function sameImage(appImage, workerImage) {

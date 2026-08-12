@@ -1,6 +1,6 @@
-export const APP_STORAGE_NAME = "vozeb-pro";
-export const APP_EXPORT_ID = "vozeb-pro-canvas";
-const APP_STORAGE_PREFIX = "vozeb-pro";
+export const APP_STORAGE_NAME = "venlinks-pro";
+export const APP_EXPORT_ID = "venlinks-pro-canvas";
+const APP_STORAGE_PREFIX = "venlinks-pro";
 
 export function appStorageKey(name: string) {
     return `${APP_STORAGE_PREFIX}:${name}`;

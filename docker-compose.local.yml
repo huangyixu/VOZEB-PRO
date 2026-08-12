@@ -1,17 +1,17 @@
 services:
   postgres:
-    image: ${VOZEB_PRO_POSTGRES_IMAGE:-docker.m.daocloud.io/library/postgres:16-alpine}
+    image: ${VENLINKS_PRO_POSTGRES_IMAGE:-docker.m.daocloud.io/library/postgres:16-alpine}
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-vozeb_pro}
-      POSTGRES_USER: ${POSTGRES_USER:-vozeb_pro}
+      POSTGRES_DB: ${POSTGRES_DB:-venlinks_pro}
+      POSTGRES_USER: ${POSTGRES_USER:-venlinks_pro}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?请在 .env 中配置 POSTGRES_PASSWORD}
     volumes:
-      - vozeb-pro-postgres:/var/lib/postgresql/data
+      - venlinks-pro-postgres:/var/lib/postgresql/data
     healthcheck:
       test:
         [
           "CMD-SHELL",
-          "pg_isready -U ${POSTGRES_USER:-vozeb_pro} -d ${POSTGRES_DB:-vozeb_pro}",
+          "pg_isready -U ${POSTGRES_USER:-venlinks_pro} -d ${POSTGRES_DB:-venlinks_pro}",
         ]
       interval: 5s
       timeout: 5s
@@ -19,31 +19,31 @@ services:
     restart: unless-stopped
 
   app:
-    image: vozeb-pro:local
+    image: venlinks-pro:local
     build:
       context: .
       dockerfile: Dockerfile
       args:
-        VOZEB_PRO_NODE_IMAGE: ${VOZEB_PRO_NODE_IMAGE:-docker.m.daocloud.io/library/node:22-bookworm-slim}
-        VOZEB_PRO_NPM_REGISTRY: ${VOZEB_PRO_NPM_REGISTRY:-https://registry.npmmirror.com}
-        VOZEB_PRO_DEBIAN_MIRROR: ${VOZEB_PRO_DEBIAN_MIRROR:-http://mirrors.aliyun.com/debian}
-        VOZEB_PRO_DEBIAN_SECURITY_MIRROR: ${VOZEB_PRO_DEBIAN_SECURITY_MIRROR:-http://mirrors.aliyun.com/debian-security}
+        VENLINKS_PRO_NODE_IMAGE: ${VENLINKS_PRO_NODE_IMAGE:-docker.m.daocloud.io/library/node:22-bookworm-slim}
+        VENLINKS_PRO_NPM_REGISTRY: ${VENLINKS_PRO_NPM_REGISTRY:-https://registry.npmmirror.com}
+        VENLINKS_PRO_DEBIAN_MIRROR: ${VENLINKS_PRO_DEBIAN_MIRROR:-http://mirrors.aliyun.com/debian}
+        VENLINKS_PRO_DEBIAN_SECURITY_MIRROR: ${VENLINKS_PRO_DEBIAN_SECURITY_MIRROR:-http://mirrors.aliyun.com/debian-security}
     env_file:
       - .env
     ports:
-      - "${VOZEB_PRO_HOST_PORT:-3002}:3000"
+      - "${VENLINKS_PRO_HOST_PORT:-3002}:3000"
     volumes:
-      - vozeb-pro-data:/app/web/.data
+      - venlinks-pro-data:/app/web/.data
     environment:
       NEXT_TELEMETRY_DISABLED: "1"
-      VOZEB_PRO_DATA_DIR: /app/web/.data
-      VOZEB_PRO_INTERNAL_ORIGIN: http://127.0.0.1:3000
-      VOZEB_PRO_DATABASE_PROVIDER: postgres
-      DATABASE_URL: postgres://${POSTGRES_USER:-vozeb_pro}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-vozeb_pro}
-      VOZEB_PRO_DATABASE_POOL_MAX: ${VOZEB_PRO_DATABASE_POOL_MAX:-10}
-      VOZEB_PRO_DATABASE_SSL: "0"
-      VOZEB_PRO_ENCRYPTION_KEY: ${VOZEB_PRO_ENCRYPTION_KEY:?请在 .env 中配置 VOZEB_PRO_ENCRYPTION_KEY}
-      VOZEB_PRO_MAINTENANCE_TOKEN: ${VOZEB_PRO_MAINTENANCE_TOKEN:?请在 .env 中配置至少 32 位维护令牌}
+      VENLINKS_PRO_DATA_DIR: /app/web/.data
+      VENLINKS_PRO_INTERNAL_ORIGIN: http://127.0.0.1:3000
+      VENLINKS_PRO_DATABASE_PROVIDER: postgres
+      DATABASE_URL: postgres://${POSTGRES_USER:-venlinks_pro}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-venlinks_pro}
+      VENLINKS_PRO_DATABASE_POOL_MAX: ${VENLINKS_PRO_DATABASE_POOL_MAX:-10}
+      VENLINKS_PRO_DATABASE_SSL: "0"
+      VENLINKS_PRO_ENCRYPTION_KEY: ${VENLINKS_PRO_ENCRYPTION_KEY:?请在 .env 中配置 VENLINKS_PRO_ENCRYPTION_KEY}
+      VENLINKS_PRO_MAINTENANCE_TOKEN: ${VENLINKS_PRO_MAINTENANCE_TOKEN:?请在 .env 中配置至少 32 位维护令牌}
     depends_on:
       postgres:
         condition: service_healthy
@@ -62,18 +62,18 @@ services:
     restart: unless-stopped
 
   generation-worker:
-    image: vozeb-pro:local
+    image: venlinks-pro:local
     command: ["node", "/app/web/scripts/generation-worker.mjs"]
     env_file:
       - .env
     environment:
-      VOZEB_PRO_WORKER_API_ORIGIN: http://app:3000
-      VOZEB_PRO_MAINTENANCE_TOKEN: ${VOZEB_PRO_MAINTENANCE_TOKEN:?请在 .env 中配置至少 32 位维护令牌}
+      VENLINKS_PRO_WORKER_API_ORIGIN: http://app:3000
+      VENLINKS_PRO_MAINTENANCE_TOKEN: ${VENLINKS_PRO_MAINTENANCE_TOKEN:?请在 .env 中配置至少 32 位维护令牌}
     depends_on:
       app:
         condition: service_healthy
     restart: unless-stopped
 
 volumes:
-  vozeb-pro-data:
-  vozeb-pro-postgres:
+  venlinks-pro-data:
+  venlinks-pro-postgres:

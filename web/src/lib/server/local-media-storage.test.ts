@@ -4,22 +4,22 @@ import { resolve } from "node:path";
 
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
-const dataDir = resolve(tmpdir(), `vozeb-pro-local-media-${process.pid}-${Date.now()}`);
-const previousDataDir = process.env.VOZEB_PRO_DATA_DIR;
-const previousProvider = process.env.VOZEB_PRO_DATABASE_PROVIDER;
+const dataDir = resolve(tmpdir(), `venlinks-pro-local-media-${process.pid}-${Date.now()}`);
+const previousDataDir = process.env.VENLINKS_PRO_DATA_DIR;
+const previousProvider = process.env.VENLINKS_PRO_DATABASE_PROVIDER;
 
 describe("local media storage", () => {
     beforeAll(async () => {
-        process.env.VOZEB_PRO_DATA_DIR = dataDir;
-        process.env.VOZEB_PRO_DATABASE_PROVIDER = "file";
+        process.env.VENLINKS_PRO_DATA_DIR = dataDir;
+        process.env.VENLINKS_PRO_DATABASE_PROVIDER = "file";
         vi.resetModules();
     });
 
     afterAll(async () => {
-        if (previousDataDir === undefined) delete process.env.VOZEB_PRO_DATA_DIR;
-        else process.env.VOZEB_PRO_DATA_DIR = previousDataDir;
-        if (previousProvider === undefined) delete process.env.VOZEB_PRO_DATABASE_PROVIDER;
-        else process.env.VOZEB_PRO_DATABASE_PROVIDER = previousProvider;
+        if (previousDataDir === undefined) delete process.env.VENLINKS_PRO_DATA_DIR;
+        else process.env.VENLINKS_PRO_DATA_DIR = previousDataDir;
+        if (previousProvider === undefined) delete process.env.VENLINKS_PRO_DATABASE_PROVIDER;
+        else process.env.VENLINKS_PRO_DATABASE_PROVIDER = previousProvider;
         await rm(dataDir, { recursive: true, force: true });
     });
 

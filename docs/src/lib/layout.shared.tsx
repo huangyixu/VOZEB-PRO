@@ -43,8 +43,8 @@ export function baseOptions(): BaseLayoutProps {
       },
       {
         type: "icon",
-        text: "VOZEB 开源交流 QQ 群",
-        label: "VOZEB 开源交流 QQ 群（1049777515）",
+        text: "VenLinks 开源交流 QQ 群",
+        label: "VenLinks 开源交流 QQ 群（1049777515）",
         url: qqGroupUrl,
         external: true,
         on: "menu",

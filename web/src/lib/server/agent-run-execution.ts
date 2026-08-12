@@ -786,7 +786,7 @@ export async function pollTask(origin: string, path: string, taskId: string, coo
     } catch {
         throw new AgentChildTaskDeferredError("生成任务状态暂时无法解析");
     }
-    if (payload.task?.needsReview) throw new AgentChildTaskDeferredError("上游创建状态待人工确认");
+    if (payload.task?.needsReview) throw new AgentChildTaskTerminalError("生成失败，请联系管理员");
     const terminal = agentChildTaskTerminal(payload.task?.status);
     if (terminal === "success") return payload.task?.result;
     if (terminal === "error") throw new AgentChildTaskTerminalError(payload.task?.error || "生成任务失败");

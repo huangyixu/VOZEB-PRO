@@ -8,11 +8,12 @@ import { getAudioTask, type AudioTask } from "@/lib/server/audio-task-store";
 import { createImageTaskUpstreamStep, markImageTaskFailed, persistImageTaskResult, queryImageTaskUpstreamStep } from "@/lib/server/image-task-runtime";
 import { getImageTask, type ImageTask } from "@/lib/server/image-task-store";
 import { getTextTask } from "@/lib/server/text-task-store";
-import { runTextTaskStep } from "@/lib/server/text-task-runtime";
+import { markTextTaskFailed, runTextTaskStep } from "@/lib/server/text-task-runtime";
 import { maintenanceWorkerContext } from "@/lib/server/maintenance-auth";
 import { executeAgentRun } from "@/lib/server/agent-run-executor";
 import { processAgentRunReview } from "@/lib/server/agent-run-execution";
 import { getAgentRun, type AgentRun } from "@/lib/server/agent-run-store";
+import { GENERATION_FAILED_CONTACT_ADMIN } from "@/lib/server/generation-errors";
 
 type RecoveryResult = "pending" | "result_ready" | "completed" | "failed" | "needs_review" | "deferred";
 
@@ -135,8 +136,9 @@ async function processTextLease(lease: GenerationTaskLease, workerId: string, or
         return task?.status === "success" ? "completed" : "failed";
     }
     if (lease.executionPhase === "submitting" && task.status === "running" && !task.upstream?.id) {
-        await releaseGenerationTaskLease("text", lease.id, workerId, { executionPhase: "needs_review", nextPollAt: undefined, lastUpstreamStatus: "submission_outcome_unknown" });
-        return "needs_review";
+        await markTextTaskFailed(task, GENERATION_FAILED_CONTACT_ADMIN);
+        await releaseGenerationTaskLease("text", lease.id, workerId, { executionPhase: "completed", nextPollAt: undefined, lastUpstreamStatus: "submission_failed" });
+        return "failed";
     }
     if (!task.upstream?.id) await scheduleGenerationTask("text", task.id, { executionPhase: "submitting", nextPollAt: lease.nextPollAt, lastUpstreamStatus: "submitting" });
     try {
@@ -148,10 +150,6 @@ async function processTextLease(lease: GenerationTaskLease, workerId: string, or
         if (step.state === "failed") {
             await releaseGenerationTaskLease("text", task.id, workerId, { executionPhase: "completed", nextPollAt: undefined, lastUpstreamStatus: "failed" });
             return "failed";
-        }
-        if (step.state === "needs_review") {
-            await releaseGenerationTaskLease("text", task.id, workerId, { executionPhase: "needs_review", nextPollAt: undefined, lastUpstreamStatus: "submission_outcome_unknown" });
-            return "needs_review";
         }
         const submittedAt = lease.submittedAt || Date.now();
         await releaseGenerationTaskLease("text", task.id, workerId, {
@@ -168,15 +166,18 @@ async function processTextLease(lease: GenerationTaskLease, workerId: string, or
         const latest = await getTextTask(task.id);
         const upstreamTaskId = latest?.upstream?.id || lease.upstreamTaskId;
         const count = errorCount(lease.lastUpstreamStatus) + 1;
+        if (!upstreamTaskId) {
+            await markTextTaskFailed(latest || task, GENERATION_FAILED_CONTACT_ADMIN);
+        }
         await releaseGenerationTaskLease("text", task.id, workerId, {
-            executionPhase: upstreamTaskId ? "polling" : "needs_review",
+            executionPhase: upstreamTaskId ? "polling" : "completed",
             upstreamTaskId,
             nextPollAt: upstreamTaskId ? generationTaskNextPollAt({ submittedAt: lease.submittedAt, consecutiveErrors: count }) : undefined,
             lastPollAt: Date.now(),
-            lastUpstreamStatus: upstreamTaskId ? `query_error:${count}` : "submission_outcome_unknown",
+            lastUpstreamStatus: upstreamTaskId ? `query_error:${count}` : "submission_failed",
         });
-        console.warn(upstreamTaskId ? "Text task recovery deferred" : "Text task execution needs review", { taskId: task.id, error: safeError(error) });
-        return upstreamTaskId ? "deferred" : "needs_review";
+        console.warn(upstreamTaskId ? "Text task recovery deferred" : "Text task execution failed", { taskId: task.id, error: safeError(error) });
+        return upstreamTaskId ? "deferred" : "failed";
     }
 }
 
@@ -187,8 +188,9 @@ async function processImageLease(lease: GenerationTaskLease, workerId: string, o
         return "completed";
     }
     if (lease.executionPhase === "submitting" && !lease.upstreamTaskId && task.status === "running") {
-        await releaseGenerationTaskLease("image", lease.id, workerId, { executionPhase: "needs_review", nextPollAt: undefined, lastUpstreamStatus: "submission_outcome_unknown" });
-        return "needs_review";
+        await markImageTaskFailed(task, GENERATION_FAILED_CONTACT_ADMIN);
+        await releaseGenerationTaskLease("image", lease.id, workerId, { executionPhase: "completed", nextPollAt: undefined, lastUpstreamStatus: "submission_failed" });
+        return "failed";
     }
     if (needsPersistence(lease)) return persistImageLease(task, lease, workerId, origin, cookie);
     try {
@@ -224,14 +226,17 @@ async function processImageLease(lease: GenerationTaskLease, workerId: string, o
         const latest = await getImageTask(task.id);
         const count = errorCount(lease.lastUpstreamStatus) + 1;
         const submitted = Boolean(latest?.upstream?.id || lease.upstreamTaskId);
+        if (!submitted) {
+            await markImageTaskFailed(latest || task, GENERATION_FAILED_CONTACT_ADMIN);
+        }
         await releaseGenerationTaskLease("image", task.id, workerId, {
-            executionPhase: submitted ? "polling" : "needs_review",
+            executionPhase: submitted ? "polling" : "completed",
             nextPollAt: submitted ? generationTaskNextPollAt({ consecutiveErrors: count }) : undefined,
             lastPollAt: Date.now(),
-            lastUpstreamStatus: submitted ? `query_error:${count}` : "submission_outcome_unknown",
+            lastUpstreamStatus: submitted ? `query_error:${count}` : "submission_failed",
         });
         console.warn("Image task step deferred", { taskId: task.id, error: safeError(error) });
-        return submitted ? "deferred" : "needs_review";
+        return submitted ? "deferred" : "failed";
     }
 }
 
@@ -263,8 +268,9 @@ async function processAudioLease(lease: GenerationTaskLease, workerId: string, o
         return "completed";
     }
     if (lease.executionPhase === "submitting" && !lease.upstreamTaskId && task.status === "running") {
-        await releaseGenerationTaskLease("audio", lease.id, workerId, { executionPhase: "needs_review", nextPollAt: undefined, lastUpstreamStatus: "submission_outcome_unknown" });
-        return "needs_review";
+        await markAudioTaskFailed(task, GENERATION_FAILED_CONTACT_ADMIN);
+        await releaseGenerationTaskLease("audio", lease.id, workerId, { executionPhase: "completed", nextPollAt: undefined, lastUpstreamStatus: "submission_failed" });
+        return "failed";
     }
     if (needsPersistence(lease)) return persistAudioLease(task, lease, workerId, origin, cookie);
     try {
@@ -298,13 +304,16 @@ async function processAudioLease(lease: GenerationTaskLease, workerId: string, o
         return "pending";
     } catch (error) {
         const count = errorCount(lease.lastUpstreamStatus) + 1;
+        if (!task.upstream?.id) {
+            await markAudioTaskFailed(task, GENERATION_FAILED_CONTACT_ADMIN);
+        }
         await releaseGenerationTaskLease("audio", task.id, workerId, {
-            executionPhase: task.upstream?.id ? "polling" : "needs_review",
+            executionPhase: task.upstream?.id ? "polling" : "completed",
             nextPollAt: task.upstream?.id ? generationTaskNextPollAt({ consecutiveErrors: count }) : undefined,
             lastPollAt: Date.now(),
-            lastUpstreamStatus: task.upstream?.id ? `query_error:${count}` : "submission_outcome_unknown",
+            lastUpstreamStatus: task.upstream?.id ? `query_error:${count}` : "submission_failed",
         });
-        return task.upstream?.id ? "deferred" : "needs_review";
+        return task.upstream?.id ? "deferred" : "failed";
     }
 }
 
@@ -336,8 +345,9 @@ async function processVideoLease(lease: GenerationTaskLease, workerId: string, o
         return "completed";
     }
     if (lease.executionPhase === "submitting" && !lease.upstreamTaskId) {
-        await releaseGenerationTaskLease("video", lease.id, workerId, { executionPhase: "needs_review", nextPollAt: undefined, lastUpstreamStatus: "submission_outcome_unknown" });
-        return "needs_review";
+        await failVideoTaskFromWorker(task, GENERATION_FAILED_CONTACT_ADMIN);
+        await releaseGenerationTaskLease("video", lease.id, workerId, { executionPhase: "completed", nextPollAt: undefined, lastUpstreamStatus: "submission_failed" });
+        return "failed";
     }
     if (needsPersistence(lease)) return persistVideoLease(task, lease, workerId, origin, cookie);
 

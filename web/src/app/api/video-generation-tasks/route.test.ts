@@ -15,6 +15,7 @@ const mocks = vi.hoisted(() => ({
     touchVideoTask: vi.fn(),
     transitionVideoTask: vi.fn(),
     updateVideoTask: vi.fn(),
+    failVideoTaskFromWorker: vi.fn(),
     scheduleGenerationTask: vi.fn(),
     withGenerationConcurrencyLimit: vi.fn(async (_userId, _type, _staleMs, _limit, handler) => handler()),
 }));
@@ -41,6 +42,7 @@ vi.mock("@/lib/server/security", () => ({
     rateLimitHeaders: vi.fn(() => ({})),
 }));
 vi.mock("@/lib/server/generation-task-recovery-service", () => ({ runGenerationTaskRecoveryBatch: vi.fn() }));
+vi.mock("@/lib/server/video-task-runtime", () => ({ failVideoTaskFromWorker: mocks.failVideoTaskFromWorker }));
 vi.mock("@/lib/server/generation-task-scheduler", () => ({ scheduleGenerationTask: mocks.scheduleGenerationTask }));
 vi.mock("@/lib/server/video-task-store", () => ({
     createVideoTask: mocks.createVideoTask,
@@ -129,23 +131,26 @@ describe("video generation candidate failover", () => {
         expect(mocks.fetchInternalApi).not.toHaveBeenCalled();
     });
 
-    it("does not retry another binding after an ambiguous 2xx response", async () => {
+    it("fails immediately after an ambiguous 2xx response", async () => {
         mocks.fetchInternalApi.mockResolvedValue(new Response("not-json", { status: 200 }));
 
         const response = await POST(request());
 
-        expect(response.status).toBe(202);
+        expect(response.status).toBe(502);
+        expect(await response.json()).toEqual({ error: "生成失败，请联系管理员" });
         expect(mocks.fetchInternalApi.mock.calls.some(([url]) => String(url).includes("/api/ai/system/two/"))).toBe(false);
         expect(mocks.createVideoTask).toHaveBeenCalledOnce();
-        expect(mocks.scheduleGenerationTask).toHaveBeenLastCalledWith("video", "local-task", expect.objectContaining({ executionPhase: "needs_review", nextPollAt: undefined, lastUpstreamStatus: "submission_outcome_unknown" }));
+        expect(mocks.failVideoTaskFromWorker).toHaveBeenCalledWith(expect.objectContaining({ id: "local-task" }), "生成失败，请联系管理员");
+        expect(mocks.scheduleGenerationTask).toHaveBeenLastCalledWith("video", "local-task", expect.objectContaining({ executionPhase: "completed", nextPollAt: undefined, lastUpstreamStatus: "submission_failed" }));
     });
 
-    it("does not retry another path or binding after an ambiguous server failure", async () => {
+    it("fails immediately after an ambiguous server failure", async () => {
         mocks.fetchInternalApi.mockResolvedValue(json({ error: "gateway failed" }, 502));
 
         const response = await POST(request());
 
-        expect(response.status).toBe(202);
+        expect(response.status).toBe(502);
+        expect(await response.json()).toEqual({ error: "生成失败，请联系管理员" });
         expect(mocks.fetchInternalApi).toHaveBeenCalledTimes(1);
         expect(mocks.fetchInternalApi.mock.calls.some(([url]) => String(url).includes("/api/ai/system/two/"))).toBe(false);
         expect(mocks.createVideoTask).toHaveBeenCalledOnce();

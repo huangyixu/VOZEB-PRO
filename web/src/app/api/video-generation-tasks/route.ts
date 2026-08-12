@@ -10,7 +10,7 @@ import { assertReferenceCapabilities, assertReferenceUrls, buildVideoProviderReq
 import { isQingyanProvider } from "@/lib/provider-compatibility";
 import { buildGlobalAiOpcVideoRequest, getGlobalAiOpcPresetForModel, resolveGlobalAiOpcPreset } from "@/lib/globalaiopc-catalog";
 import { createVideoTask, transitionVideoTask, updateVideoTask, type VideoTask } from "@/lib/server/video-task-store";
-import { toSafeGenerationErrorMessage } from "@/lib/server/generation-errors";
+import { GENERATION_FAILED_CONTACT_ADMIN, toSafeGenerationErrorMessage } from "@/lib/server/generation-errors";
 import { getStoredGenerationTaskByRequest, linkStoredGenerationTask, withGenerationConcurrencyLimit, type GenerationTaskContext } from "@/lib/server/generation-task-store";
 import { normalizeVideoAspectRatio, resolveUpstreamVideoDuration, resolveVideoDuration, resolveVideoGenerationParameters, withVideoReferenceFidelity } from "@/lib/server/video-task-config";
 import { signReferenceAssetInputUrl } from "@/lib/server/reference-asset-access";
@@ -24,6 +24,7 @@ import { VIDEO_PROVIDER_MEDIA_KEYS, parseVideoProviderJson, readVideoProviderHtt
 import { buildSeedanceSpecialRequest } from "@/lib/seedance-special";
 import { systemAiBillingHeaders } from "@/lib/server/system-ai-billing";
 import { maintenanceWorkerContextHeaders, requestRuntimeCredential } from "@/lib/server/maintenance-auth";
+import { failVideoTaskFromWorker } from "@/lib/server/video-task-runtime";
 import { buildOpenAiVideoFormData } from "./video-task-openai";
 
 export const runtime = "nodejs";
@@ -159,11 +160,12 @@ export async function POST(request: Request) {
                 attempts = finishGenerationAttempt(attempts, started.attempt.attemptNo, { status: "failed", error: toSafeGenerationErrorMessage(error, "视频任务创建失败") });
                 await updateVideoTask(localTask.id, { attempts });
                 if (error instanceof SafeCandidateFailure && index < channels.length - 1) continue;
-                const message = toSafeGenerationErrorMessage(error, "视频任务创建失败");
                 if (!(error instanceof SafeCandidateFailure)) {
-                    await scheduleGenerationTask("video", localTask.id, { executionPhase: "needs_review", nextPollAt: undefined, lastUpstreamStatus: "submission_outcome_unknown" });
-                    return NextResponse.json({ task: { ...publicTask({ ...localTask, attempts }), needsReview: true }, warning: `${message}；上游创建结果待确认，系统不会自动重复创建。` }, { status: 202 });
+                    await failVideoTaskFromWorker({ ...localTask, attempts }, GENERATION_FAILED_CONTACT_ADMIN);
+                    await scheduleGenerationTask("video", localTask.id, { executionPhase: "completed", nextPollAt: undefined, lastUpstreamStatus: "submission_failed" });
+                    return NextResponse.json({ error: GENERATION_FAILED_CONTACT_ADMIN }, { status: 502 });
                 }
+                const message = toSafeGenerationErrorMessage(error, "视频任务创建失败");
                 await transitionVideoTask(localTask, { status: "error", error: message, retryable: true });
                 await scheduleGenerationTask("video", localTask.id, { executionPhase: "completed", nextPollAt: undefined, lastUpstreamStatus: "create_failed" });
                 break;

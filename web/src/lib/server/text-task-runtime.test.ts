@@ -139,11 +139,13 @@ describe("text task runtime recovery", () => {
         const fetchMock = vi.fn().mockRejectedValueOnce(new Error("socket closed"));
         vi.stubGlobal("fetch", fetchMock);
 
-        await expect(runTextTaskStep(state, "http://internal", "")).resolves.toMatchObject({ state: "needs_review" });
+        await expect(runTextTaskStep(state, "http://internal", "")).resolves.toEqual({ state: "failed", error: "生成失败，请联系管理员" });
         expect(fetchMock).toHaveBeenCalledTimes(1);
         expect(state.config.channelId).toBe("channel-one");
-        expect(state.candidateConfigs).toHaveLength(1);
-        expect(state.attempts?.map(({ status }) => status)).toEqual(["running"]);
+        expect(state.status).toBe("error");
+        expect(state.error).toBe("生成失败，请联系管理员");
+        expect(state.candidateConfigs).toHaveLength(0);
+        expect(state.attempts?.map(({ status }) => status)).toEqual(["failed"]);
     });
 
     it("does not create through another channel after a submission timeout", async () => {
@@ -151,12 +153,12 @@ describe("text task runtime recovery", () => {
         const fetchMock = vi.fn().mockRejectedValueOnce(Object.assign(new Error("request timed out"), { name: "TimeoutError" }));
         vi.stubGlobal("fetch", fetchMock);
 
-        await expect(runTextTaskStep(state, "http://internal", "")).resolves.toMatchObject({ state: "needs_review", error: expect.stringContaining("上游是否已受理待确认") });
+        await expect(runTextTaskStep(state, "http://internal", "")).resolves.toEqual({ state: "failed", error: "生成失败，请联系管理员" });
         expect(fetchMock).toHaveBeenCalledTimes(1);
         expect(String(fetchMock.mock.calls[0]?.[0])).toBe("https://one.example/v1/chat/completions");
         expect(state.config.channelId).toBe("channel-one");
-        expect(state.candidateConfigs).toHaveLength(1);
-        expect(state.attempts?.map(({ status }) => status)).toEqual(["running"]);
+        expect(state.candidateConfigs).toHaveLength(0);
+        expect(state.attempts?.map(({ status }) => status)).toEqual(["failed"]);
     });
 
     it("refunds an invalid drama structure before switching to the backup model", async () => {
@@ -238,12 +240,13 @@ describe("text task runtime recovery", () => {
         expect(state.result?.content).toBe("Chat 兼容返回");
     });
 
-    it("marks a 2xx invalid JSON response for manual review", async () => {
+    it("fails a 2xx invalid JSON response without waiting for manual review", async () => {
         state = textTask(openAiConfig("channel-one", "https://one.example"), [openAiConfig("channel-two", "https://two.example")]);
         vi.stubGlobal("fetch", vi.fn().mockResolvedValueOnce(new Response("not-json", { status: 200, headers: { "content-type": "application/json" } })));
 
-        await expect(runTextTaskStep(state, "http://internal", "")).resolves.toMatchObject({ state: "needs_review" });
+        await expect(runTextTaskStep(state, "http://internal", "")).resolves.toEqual({ state: "failed", error: "生成失败，请联系管理员" });
         expect(state.config.channelId).toBe("channel-one");
+        expect(state.status).toBe("error");
     });
 
     it("refunds a zero-point recorded charge when the upstream task fails", async () => {

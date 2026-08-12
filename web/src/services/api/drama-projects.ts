@@ -159,7 +159,7 @@ export async function exportDramaJianyingDraft(projectId: string, input: { episo
 
 function completedDramaAnalysis(task: DramaAnalysisTask, phase: DramaAnalysisRequest["phase"]): DramaAnalysisResult | undefined {
     if (task.phase !== phase) throw new Error("AI 分析任务阶段不匹配，请重新提交");
-    if (task.needsReview || task.executionPhase === "needs_review") throw new GenerationTaskNeedsReviewError("上游创建状态待确认，系统已停止自动重复创建；请再次点击重试，若问题持续请联系管理员");
+    if (task.needsReview || task.executionPhase === "needs_review") throw new GenerationTaskNeedsReviewError();
     if (task.status === "error" || task.status === "cancelled") throw new Error(task.error || (task.status === "cancelled" ? "AI 分析任务已取消" : "AI 分析失败"));
     if (task.status !== "success") return undefined;
     if (!task.result) throw new Error("AI 分析任务没有返回结果");

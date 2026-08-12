@@ -53,13 +53,13 @@ describe("video API service", () => {
         expect(mocks.imageToDataUrl).not.toHaveBeenCalled();
     });
 
-    it("returns a terminal failure when the upstream submission needs manual review", async () => {
+    it("returns the unified failure message for a legacy manual-review task", async () => {
         const fetchMock = vi.fn().mockResolvedValue(json({ task: { id: "video-review", status: "running", needsReview: true } }));
         vi.stubGlobal("fetch", fetchMock);
 
         await expect(pollVideoGenerationTask(config, { id: "video-review", provider: "generation", model: "video-v1", pollPath: "server" })).resolves.toEqual({
             status: "failed",
-            error: "上游创建状态待确认，系统已停止重复创建，请联系管理员处理",
+            error: "生成失败，请联系管理员",
         });
         expect(fetchMock).toHaveBeenCalledTimes(1);
     });

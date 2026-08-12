@@ -1,9 +1,10 @@
 import { hasInsufficientPointsError } from "@/lib/creative-generation-status";
 
 export const DEFAULT_CHANNEL_CONNECT_ERROR = "生成渠道暂时无法连接，请稍后重试或联系管理员。";
+export const GENERATION_FAILED_CONTACT_ADMIN = "生成失败，请联系管理员";
 
 export function toSafeGenerationErrorMessage(error: unknown, fallback: string) {
-    const message = error instanceof Error ? error.message : "";
+    const message = typeof error === "string" ? error : error instanceof Error ? error.message : "";
     if (hasInsufficientPointsError(error)) return "积分不足";
     if (isTimeoutError(error, message)) return "生成接口响应超时，请稍后重试或检查模型服务。";
     if (isFetchNetworkError(error, message)) return DEFAULT_CHANNEL_CONNECT_ERROR;

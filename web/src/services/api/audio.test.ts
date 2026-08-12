@@ -76,11 +76,11 @@ describe("audio API service", () => {
         expect(result.url).toBe("/api/reference-assets/resumed-audio");
     });
 
-    it("stops polling when the upstream submission needs manual review", async () => {
+    it("shows the unified failure message for a legacy manual-review task", async () => {
         const fetchMock = vi.fn().mockResolvedValue(json({ task: { id: "audio-review", status: "running", model: "voice", needsReview: true } }));
         vi.stubGlobal("fetch", fetchMock);
 
-        await expect(waitForAudioGenerationTask(config, { id: "audio-review", status: "running", model: "voice" })).rejects.toThrow("上游创建状态待确认");
+        await expect(waitForAudioGenerationTask(config, { id: "audio-review", status: "running", model: "voice" })).rejects.toThrow("生成失败，请联系管理员");
         expect(fetchMock).toHaveBeenCalledTimes(1);
     });
 });

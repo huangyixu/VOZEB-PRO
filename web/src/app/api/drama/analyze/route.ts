@@ -165,7 +165,7 @@ function parseResult(value?: string) {
 }
 
 function taskMessage(task: TextTask) {
-    if (task.executionPhase === "needs_review") return "上游创建状态待确认，系统已停止重复创建";
+    if (task.executionPhase === "needs_review") return "生成失败，请联系管理员";
     if (task.status === "error" || task.status === "cancelled") return task.error || "分析任务已结束";
     if (task.status === "success") return task.metadata?.phase === "visual" ? "视觉结构已生成" : "内容结构待审核";
     return task.metadata?.phase === "visual" ? "AI 正在生成视觉方案" : "AI 正在提取内容结构";

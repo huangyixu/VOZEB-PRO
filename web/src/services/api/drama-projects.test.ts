@@ -94,7 +94,7 @@ describe("drama project api", () => {
         await expect(runDramaAnalysis({ phase: "content", projectId: "drama-one", episodeId: "episode-one", script: "剧本", summary: "", style: "" })).rejects.toThrow("模型返回失败");
         await expect(runDramaAnalysis({ phase: "visual", projectId: "drama-one", episodeId: "episode-one", summary: "", style: "", episode: episode(), characters: [], scenes: [], props: [], clues: [], shots: [] })).rejects.toMatchObject({
             name: "GenerationTaskNeedsReviewError",
-            message: expect.stringContaining("请再次点击重试"),
+            message: "生成失败，请联系管理员",
         });
         expect(fetchMock).toHaveBeenCalledTimes(2);
     });

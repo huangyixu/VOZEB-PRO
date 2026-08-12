@@ -1,7 +1,7 @@
 import { refundUserPoints } from "@/lib/auth/store";
 import { configureServerProxyDispatcher } from "@/lib/server/proxy-dispatcher";
 import { fetchInternalApi, isInternalApiBaseUrl } from "@/lib/server/internal-origin";
-import { toSafeGenerationErrorMessage } from "@/lib/server/generation-errors";
+import { GENERATION_FAILED_CONTACT_ADMIN, toSafeGenerationErrorMessage } from "@/lib/server/generation-errors";
 import { generationModelId } from "@/lib/server/generation-channel";
 import { finishGenerationAttempt, startGenerationAttempt } from "@/lib/server/generation-attempt";
 import { getTextTask, transitionTextTask, type TextTask, type TextTaskConfig } from "@/lib/server/text-task-store";
@@ -23,7 +23,7 @@ const TASK_STATUS_KEYS = ["status", "state", "task_status", "taskStatus"];
 const FAILED_TASK_STATUSES = new Set(["failed", "failure", "error", "cancelled", "canceled", "expired"]);
 const PENDING_TASK_STATUSES = new Set(["", "pending", "queued", "running", "processing", "in_progress", "created", "submitted"]);
 
-export type TextTaskStep = { state: "pending"; status: string; upstreamTaskId: string; createPath: string } | { state: "completed" } | { state: "failed"; error: string } | { state: "needs_review"; error: string };
+export type TextTaskStep = { state: "pending"; status: string; upstreamTaskId: string; createPath: string } | { state: "completed" } | { state: "failed"; error: string };
 
 type ResponseInputContent = { type: "input_text"; text: string } | { type: "input_image"; image_url: string };
 type ResponseInputItem = { role: "system" | "user" | "assistant"; content: string | ResponseInputContent[] };
@@ -108,8 +108,9 @@ export async function runTextTaskStep(task: TextTask, origin: string, cookie: st
             const message = toSafeGenerationErrorMessage(error, "文本生成失败");
             const latest = await getTextTask(task.id);
             if (latest?.status === "cancelled" || latest?.status === "success") return latest.status === "success" ? { state: "completed" } : { state: "failed", error: latest.error || "任务已取消" };
-            if (error instanceof GenerationSubmissionUncertainError) return { state: "needs_review", error: message };
-            if (!(error instanceof GenerationSubmissionSafeFailure)) return { state: "needs_review", error: generationSubmissionUncertainError(error, message).message };
+            if (error instanceof GenerationSubmissionUncertainError || !(error instanceof GenerationSubmissionSafeFailure)) {
+                return failTextTask((await getTextTask(task.id)) || candidateTask, GENERATION_FAILED_CONTACT_ADMIN, attempts);
+            }
             attempts = finishGenerationAttempt(attempts, candidateTask.attemptNo, { status: "failed", error: message });
             await updateTextTask(task.id, { attempts, attemptNo: candidateTask.attemptNo });
         }
@@ -197,7 +198,7 @@ async function createCustomTextTaskStep(task: TextTask, origin: string, cookie: 
 async function queryCustomTextTaskStep(task: TextTask, origin: string, cookie: string): Promise<TextTaskStep> {
     const config = task.config;
     const upstream = task.upstream;
-    if (!upstream?.id) return { state: "needs_review", error: "文本任务缺少上游任务 ID" };
+    if (!upstream?.id) return failTextTask(task, GENERATION_FAILED_CONTACT_ADMIN, task.attempts || []);
     let lastError = "";
     for (const path of providerQueryPaths(config.advancedConfig, upstream.id, [])) {
         const response = await taskFetch(config, taskUrl(config, path, origin), { headers: taskHeaders(config, cookie), cache: "no-store" });

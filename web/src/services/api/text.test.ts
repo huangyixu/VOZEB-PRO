@@ -13,11 +13,11 @@ describe("文本任务轮询", () => {
         vi.unstubAllGlobals();
     });
 
-    it("stops polling when the upstream submission needs manual review", async () => {
+    it("shows the unified failure message for a legacy manual-review task", async () => {
         const fetchMock = vi.fn(async () => Response.json({ task: { id: "text-review", status: "running", model: "text-model", needsReview: true } }));
         vi.stubGlobal("fetch", fetchMock);
 
-        await expect(waitForTextGenerationTask({ apiSource: "system" } as AiConfig, { id: "text-review", status: "running", model: "text-model" })).rejects.toThrow("上游创建状态待确认");
+        await expect(waitForTextGenerationTask({ apiSource: "system" } as AiConfig, { id: "text-review", status: "running", model: "text-model" })).rejects.toThrow("生成失败，请联系管理员");
         expect(fetchMock).toHaveBeenCalledTimes(1);
     });
 });

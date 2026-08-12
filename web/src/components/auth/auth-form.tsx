@@ -104,7 +104,7 @@ export function AuthForm({
                 <div className="auth-form-header">
                     <p className="auth-form-kicker text-sm font-medium text-cyan-600 dark:text-cyan-300">{firstUser ? "首次初始化" : isRegister ? "创建创作账号" : "欢迎回来"}</p>
                     <h2 className={cn("mt-2 font-semibold tracking-normal text-stone-950 dark:text-white", variant === "embedded" ? "text-2xl" : "text-3xl")}>{firstUser ? "创建首个管理员" : isRegister ? "注册 VenLinks PRO" : "登录 VenLinks PRO"}</h2>
-                    <p className="auth-form-description mt-3 text-sm leading-6 text-stone-500 dark:text-stone-400">{isRegister ? "保存创作项目、提示词和常用风格，从同一个入口继续。" : "继续你的电商、短剧、美颜与画布创作。"}</p>
+                    <p className="auth-form-description mt-3 text-sm leading-6 text-stone-500 dark:text-stone-400">{isRegister ? "保存创作项目、提示词和常用风格，从同一个入口继续。" : "继续你的商业视觉、智能短剧与画布创作。"}</p>
                 </div>
 
                 {authError ? <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900 dark:border-red-400/20 dark:bg-red-400/10 dark:text-red-100">{authError}</div> : null}
@@ -250,7 +250,7 @@ export function AuthForm({
                         <h1 className="text-balance text-2xl font-semibold tracking-normal sm:text-3xl">{firstUser ? "创建首个管理员" : isRegister ? "从一个入口开始视觉创作" : "回到你的视觉创作台"}</h1>
                     </div>
                     <div className="auth-page-feature-list grid gap-2 text-sm text-stone-600 dark:text-stone-300">
-                        {["电商、短剧与美颜创作", "画布项目与提示词复用", "图片、视频工作台自由切换"].map((item) => (
+                        {["商业视觉与智能短剧", "画布项目与提示词复用", "图片、视频工作台自由切换"].map((item) => (
                             <div key={item} className="flex items-center gap-2">
                                 <span className="size-1.5 rounded-full bg-cyan-400" />
                                 <span>{item}</span>

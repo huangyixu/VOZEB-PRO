@@ -94,26 +94,15 @@ const socialIconByKey: Record<SiteSocialKey, ReactNode> = {
 
 const publicPrefetchRoutes = ["/gallery", "/login", "/register", "/forgot-password", "/privacy", "/terms"];
 const authenticatedPrefetchRoutes = navigationTools.map((tool) => `/${tool.slug}`);
-const heroWorkflowItems = ["选场景", "加参考", "写描述", "生成", "微调", "保存"];
 const heroValueItems = [
-    { icon: <ShoppingBag className="size-4" />, label: "电商", tone: "commerce" },
-    { icon: <Clapperboard className="size-4" />, label: "短剧", tone: "comic" },
-    { icon: <ImageIcon className="size-4" />, label: "美颜", tone: "beauty" },
-];
-const heroPipelineItems = [
-    { name: "参考图识别", status: "完成", progress: "100%" },
-    { name: "风格生成", status: "生成中", progress: "76%" },
-    { name: "细节优化", status: "待处理", progress: "42%" },
-];
-const heroOutputItems = [
-    { icon: <ShoppingBag className="size-5" />, label: "电商", title: "上新视觉", detail: "商品展示 / 海报 / 详情", tone: "commerce" },
-    { icon: <Clapperboard className="size-5" />, label: "短剧", title: "角色分镜", detail: "封面 / 连载 / 对话", tone: "comic" },
-    { icon: <ImageIcon className="size-5" />, label: "美颜", title: "人像精修", detail: "肤色 / 光影 / 质感", tone: "beauty" },
+    { icon: <ShoppingBag className="size-4" />, label: "商业视觉", tone: "commerce" },
+    { icon: <Clapperboard className="size-4" />, label: "智能短剧", tone: "comic" },
+    { icon: <Sparkles className="size-4" />, label: "Agent 编排", tone: "agent" },
 ];
 const homeShowcaseItems = [
     { id: "commerce", icon: <ShoppingBag className="size-5" />, label: "电商", title: "上新主图与详情视觉", text: "商品、背景、卖点和版式可以连续生成，适合日常上新和活动图。", tags: ["商品主图", "活动海报", "详情页"], tone: "commerce" },
     { id: "comic", icon: <Clapperboard className="size-5" />, label: "短剧", title: "角色封面与分镜", text: "固定角色、画风和镜头节奏，快速生成封面、连载图和剧情分镜。", tags: ["角色设定", "分镜", "封面"], tone: "comic" },
-    { id: "beauty", icon: <ImageIcon className="size-5" />, label: "美颜", title: "自然人像精修", text: "保留人物特征，统一肤色、光影和质感，让头像、写真和展示图更干净。", tags: ["肤色", "光影", "质感"], tone: "beauty" },
+    { id: "canvas", icon: <ImageIcon className="size-5" />, label: "画布", title: "灵感在画布上持续生长", text: "组合图片、视频与文本节点，把零散素材推进为完整创作方案。", tags: ["自由画布", "多模态", "持续编辑"], tone: "canvas" },
     { id: "style", icon: <WandSparkles className="size-5" />, label: "复用", title: "常用风格一键继续", text: "把好看的参考图、提示和结果保存起来，下次不用从零开始。", tags: ["参考图", "常用风格", "继续创作"], tone: "style" },
 ];
 
@@ -340,6 +329,7 @@ export default function HomePage() {
             <section className="landing-moon-hero relative overflow-hidden">
                 <div className="landing-moon-grid" aria-hidden="true" />
                 <div className="landing-moon-scan" aria-hidden="true" />
+                <div className="landing-hero-aurora" aria-hidden="true" />
                 <header className="landing-moon-header relative z-20 mx-auto flex h-20 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6">
                     <Link href="/" className="landing-moon-brand inline-flex min-w-0 items-center gap-3 text-stone-950 dark:text-white">
                         <SiteLogo logoUrl={site.logoUrl} className="size-9" />
@@ -379,18 +369,19 @@ export default function HomePage() {
 
                 <div className="landing-moon-hero-inner landing-hero-layout relative z-10 mx-auto grid min-h-[calc(100dvh-8.5rem)] max-w-[1500px] grid-cols-1 items-center gap-8 px-4 pb-12 pt-6 lg:grid-cols-[minmax(0,1.08fr)_minmax(460px,0.92fr)] lg:gap-14 lg:px-8 xl:gap-20">
                     <div className="landing-hero-copy-panel">
+                        <div className="landing-hero-kicker">
+                            <i /> AI CREATIVE OPERATING SYSTEM <span>2026</span>
+                        </div>
                         <div className="landing-hero-heading">
                             <h1 className={cn("landing-hero-title text-balance font-semibold tracking-normal text-stone-950 dark:text-white", siteTitle.length > 8 && "is-long-title")} title={siteTitle}>
                                 {siteTitle}
                             </h1>
-                            <div className="landing-hero-badge inline-flex items-center gap-2">
-                                <Sparkles className="size-4" />
-                                <span>Agent 创作入口</span>
-                            </div>
                         </div>
-                        <p className="landing-hero-description mt-6 max-w-2xl text-stone-600 dark:text-white/68">从商品展示到短剧分镜，再到人像精修，把想法、参考图和常用风格放在同一个入口，快速得到可继续编辑的视觉结果。</p>
+                        <p className="landing-hero-slogan">
+                            让灵感，<span>无限进化</span>
+                        </p>
+                        <p className="landing-hero-description mt-6 max-w-2xl text-stone-600 dark:text-white/68">从一句想法出发，由 Agent 串联图像、视频、画布与短剧生产。一个入口，完成从灵感到作品的跃迁。</p>
                         <div className="landing-hero-proof-grid mt-7" role="list" aria-label="创作场景">
-                            <i className="landing-scene-slider" aria-hidden="true" />
                             {heroValueItems.map((item) => (
                                 <div key={item.label} role="listitem" className={cn("landing-scene-tab", `is-${item.tone}`)}>
                                     <i className="landing-scene-tab-icon" aria-hidden="true">
@@ -400,86 +391,83 @@ export default function HomePage() {
                                 </div>
                             ))}
                         </div>
-                        <div className="landing-hero-chain is-auto-flow mt-8">
-                            {heroWorkflowItems.map((item, index) => (
-                                <span key={item} className="landing-hero-chain-item">
-                                    <span>{String(index + 1).padStart(2, "0")}</span>
-                                    {item}
-                                </span>
-                            ))}
-                            <i className="landing-hero-chain-fill" aria-hidden="true" />
-                        </div>
                         <div className="landing-moon-hero-actions mt-8 flex flex-wrap items-center gap-3">
                             <Button className="landing-hero-cta landing-moon-primary" type="primary" size="large" onClick={() => openProtectedEntry(`/${primaryTool.slug}`)} icon={<ArrowRight className="size-5" />} iconPlacement="end">
-                                开始创作
+                                开启创作
                             </Button>
+                            <Button className="landing-hero-secondary" size="large" href="/gallery">
+                                探索作品
+                            </Button>
+                        </div>
+                        <div className="landing-hero-capabilities">
+                            <span>IMAGE</span>
+                            <i />
+                            <span>VIDEO</span>
+                            <i />
+                            <span>CANVAS</span>
+                            <i />
+                            <span>DRAMA</span>
                         </div>
                     </div>
 
-                    <div className="landing-moon-preview landing-workbench-preview" aria-hidden="true" onPointerMove={handleWorkbenchPointerMove} onPointerLeave={handleWorkbenchPointerLeave}>
-                        <div className="landing-moon-window">
-                            <div className="landing-moon-window-top">
-                                <span />
-                                <span />
-                                <span />
-                                <strong>{siteTitle} Creative Studio</strong>
-                                <em>创作任务 / 生成中</em>
+                    <div className="landing-orbit-stage landing-workbench-preview" aria-hidden="true" onPointerMove={handleWorkbenchPointerMove} onPointerLeave={handleWorkbenchPointerLeave}>
+                        <div className="landing-orbit-stars" />
+                        <div className="landing-orbit-status">
+                            <span>
+                                <i /> CREATIVE CORE
+                            </span>
+                            <em>ONLINE / 01</em>
+                        </div>
+                        <div className="landing-orbit-system">
+                            <div className="landing-orbit-ring is-outer">
+                                <i />
+                                <i />
+                                <i />
                             </div>
-                            <div className="landing-moon-canvas">
-                                <div className="landing-creative-board">
-                                    <div className="landing-creative-board-head">
-                                        <div>
-                                            <span>AI 创作台</span>
-                                            <strong>电商、短剧与美颜</strong>
-                                        </div>
-                                        <div className="landing-creative-status">
-                                            <WandSparkles className="size-4" />
-                                            正在生成
-                                        </div>
-                                    </div>
-
-                                    <div className="landing-creative-stage">
-                                        <div className="landing-creative-input-card">
-                                            <span>输入</span>
-                                            <strong>参考图 + 一句话</strong>
-                                            <p>保持风格、比例与人物特征，自动拆成多组可编辑结果。</p>
-                                            <i />
-                                        </div>
-                                        <div className="landing-creative-output-wall">
-                                            {heroOutputItems.map((item, index) => (
-                                                <div key={item.label} className={cn("landing-creative-output-card", index === 0 && "is-featured", `is-${item.tone}`)}>
-                                                    <div className="landing-creative-output-art">{item.icon}</div>
-                                                    <span>{item.label}</span>
-                                                    <strong>{item.title}</strong>
-                                                    <small>{item.detail}</small>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-
-                                    <div className="landing-creative-prompt">
-                                        <div>
-                                            <span>当前描述</span>
-                                            <strong>夏季上新、漫画分镜、自然人像光</strong>
-                                        </div>
-                                        <em>12 个结果</em>
-                                    </div>
-
-                                    <div className="landing-creative-pipeline">
-                                        {heroPipelineItems.map((item) => (
-                                            <div key={item.name} className="landing-creative-pipeline-item">
-                                                <div>
-                                                    <span>{item.name}</span>
-                                                    <strong>{item.status}</strong>
-                                                </div>
-                                                <i>
-                                                    <b style={{ width: item.progress }} />
-                                                </i>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
+                            <div className="landing-orbit-ring is-middle">
+                                <i />
+                                <i />
                             </div>
+                            <div className="landing-orbit-ring is-inner" />
+                            <div className="landing-orbit-core">
+                                <div className="landing-orbit-core-glow" />
+                                <SiteLogo logoUrl={site.logoUrl} className="landing-orbit-logo" />
+                                <span>
+                                    GENERATIVE
+                                    <br />
+                                    INTELLIGENCE
+                                </span>
+                            </div>
+                            <div className="landing-orbit-card is-commerce">
+                                <span>01 / VISUAL</span>
+                                <strong>商业视觉生成</strong>
+                                <small>PRODUCT · CAMPAIGN</small>
+                                <ShoppingBag className="size-5" />
+                            </div>
+                            <div className="landing-orbit-card is-drama">
+                                <span>02 / STORY</span>
+                                <strong>智能短剧工厂</strong>
+                                <small>SCRIPT · SHOT · VIDEO</small>
+                                <Clapperboard className="size-5" />
+                            </div>
+                            <div className="landing-orbit-satellite is-one">
+                                <i />
+                            </div>
+                            <div className="landing-orbit-satellite is-two">
+                                <i />
+                            </div>
+                        </div>
+                        <div className="landing-orbit-command">
+                            <div>
+                                <span>AGENT / INPUT</span>
+                                <strong>描述你的下一个想法...</strong>
+                            </div>
+                            <i>
+                                <WandSparkles className="size-5" />
+                            </i>
+                            <em>
+                                <b /> 推理引擎已就绪
+                            </em>
                         </div>
                     </div>
                 </div>
@@ -490,7 +478,7 @@ export default function HomePage() {
                     <div className="landing-showcase-header relative z-10 mb-8">
                         <div>
                             <h2 className="text-2xl font-semibold text-stone-950 sm:text-3xl dark:text-white">常用场景，直接开做</h2>
-                            <p className="mt-3 max-w-2xl text-base leading-7 text-stone-600 dark:text-stone-400">电商、短剧、美颜和常用风格都能保存下来，下次从熟悉的入口继续创作。</p>
+                            <p className="mt-3 max-w-2xl text-base leading-7 text-stone-600 dark:text-stone-400">商业视觉、智能短剧、自由画布和常用风格都能持续沉淀，下次从熟悉的入口继续创作。</p>
                         </div>
                     </div>
                     <div className="landing-showcase-grid relative z-10 grid auto-rows-[190px] gap-4 sm:grid-cols-2 md:grid-cols-4 sm:auto-rows-[200px] md:auto-rows-[190px]">
@@ -642,7 +630,7 @@ export default function HomePage() {
                         <div className="landing-auth-modal-copy">
                             <p className="text-sm font-medium text-cyan-700 dark:text-cyan-200">开始创作</p>
                             <h2 className="mt-3 text-3xl font-semibold leading-tight text-stone-950 dark:text-white">登录后继续创作</h2>
-                            <p className="mt-4 text-sm leading-7 text-stone-500 dark:text-stone-300">进入画布，继续电商、短剧、美颜和提示词创作。</p>
+                            <p className="mt-4 text-sm leading-7 text-stone-500 dark:text-stone-300">进入工作台，继续商业视觉、智能短剧、画布和提示词创作。</p>
                         </div>
                         <div className="landing-auth-modal-bullets grid gap-2 text-sm text-stone-600 dark:text-stone-300">
                             {["多场景视觉创作", "画布持续编辑", "灵感与提示词复用"].map((item) => (

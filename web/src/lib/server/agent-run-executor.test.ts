@@ -398,7 +398,7 @@ describe("executeAgentRun backend settings", () => {
                 id: "text-one",
                 title: "欢迎文案",
                 type: "text",
-                prompt: "创建一个文字节点，内容写“欢迎使用 VenLinks PRO Agent”，放在画布中央，并选中它。\n\n严格输出要求：只输出最终文本，不要标题、Markdown、解释或列表。",
+                prompt: "创建一个文字节点，内容写“欢迎使用 VenLinks Agent”，放在画布中央，并选中它。\n\n严格输出要求：只输出最终文本，不要标题、Markdown、解释或列表。",
                 count: 1,
                 dependencies: [],
                 status: "ready",
@@ -410,7 +410,7 @@ describe("executeAgentRun backend settings", () => {
         await executeAgentRun(mocks.run, "http://localhost", "session=test");
 
         expect(mocks.fetchInternalApi.mock.calls.some(([url]) => String(url).includes("/api/text-tasks"))).toBe(false);
-        expect(mocks.run?.tasks[0].result).toEqual({ content: "欢迎使用 VenLinks PRO Agent" });
+        expect(mocks.run?.tasks[0].result).toEqual({ content: "欢迎使用 VenLinks Agent" });
         const completed = mocks.events.find((event) => event.type === "task.completed") as { data?: { message?: string; ops?: Array<Record<string, unknown>> } } | undefined;
         expect(completed?.data?.message).not.toContain("无法直接操作");
         expect(completed?.data?.ops).toEqual(
@@ -420,7 +420,7 @@ describe("executeAgentRun backend settings", () => {
                     id: "output-agent-run-0-0",
                     nodeType: "text",
                     position: { x: 800, y: 96 },
-                    metadata: expect.objectContaining({ content: "欢迎使用 VenLinks PRO Agent" }),
+                    metadata: expect.objectContaining({ content: "欢迎使用 VenLinks Agent" }),
                 }),
                 { type: "select_nodes", ids: ["output-agent-run-0-0"] },
             ]),
@@ -880,7 +880,7 @@ describe("executeAgentRun backend settings", () => {
         mocks.getAuthSettings.mockResolvedValue(canvasSettings("image-default", "image-default-channel"));
         mocks.fetchInternalApi.mockImplementation(async (url: string) => {
             if (url.endsWith("/responses")) return new Response("unsupported endpoint", { status: 404 });
-            if (url.endsWith("/chat/completions")) return Response.json({ choices: [{ message: { content: "我建议使用横版构图。" } }] }, { headers: { "x-venlinks-pro-points-cost": "2", "x-venlinks-pro-points-record-id": "points-agent-plan" } });
+            if (url.endsWith("/chat/completions")) return Response.json({ choices: [{ message: { content: "我建议使用横版构图。" } }] }, { headers: { "x-venlinks-points-cost": "2", "x-venlinks-points-record-id": "points-agent-plan" } });
             throw new Error(`unexpected request: ${url}`);
         });
 
@@ -896,7 +896,7 @@ describe("executeAgentRun backend settings", () => {
         mocks.fetchInternalApi.mockResolvedValue(
             Response.json(
                 { output: [{ type: "function_call", name: "create_agent_plan", arguments: JSON.stringify(conversationPlan("image-default", "在的。")) }] },
-                { headers: { "x-venlinks-pro-points-cost": "0", "x-venlinks-pro-points-record-id": "points-agent-free" } },
+                { headers: { "x-venlinks-points-cost": "0", "x-venlinks-points-record-id": "points-agent-free" } },
             ),
         );
         mocks.updateAgentRunById.mockImplementation(async (_id, patch, event, allowedStatuses, expectedExecutionId) => {
@@ -920,7 +920,7 @@ describe("executeAgentRun backend settings", () => {
             mocks.run = mocks.run ? { ...mocks.run, status: "cancelled" } : null;
             return Response.json(
                 { output: [{ type: "function_call", name: "create_agent_plan", arguments: JSON.stringify(conversationPlan("image-default", "在的。")) }] },
-                { headers: { "x-venlinks-pro-points-cost": "3", "x-venlinks-pro-points-record-id": "points-agent-cancelled" } },
+                { headers: { "x-venlinks-points-cost": "3", "x-venlinks-points-record-id": "points-agent-cancelled" } },
             );
         });
 

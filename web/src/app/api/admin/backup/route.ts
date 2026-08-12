@@ -30,7 +30,7 @@ export async function GET() {
     const exportedAt = new Date().toISOString();
     const data = await readAdminBackupData();
     const backup = {
-        app: "VenLinks PRO",
+        app: "VenLinks",
         version: 1,
         exportedAt,
         files: {
@@ -44,7 +44,7 @@ export async function GET() {
     return new NextResponse(JSON.stringify(backup, null, 2), {
         headers: {
             "Content-Type": "application/json; charset=utf-8",
-            "Content-Disposition": `attachment; filename="venlinks-pro-data-backup-${exportedAt.slice(0, 10)}.json"`,
+            "Content-Disposition": `attachment; filename="venlinks-data-backup-${exportedAt.slice(0, 10)}.json"`,
             "Cache-Control": "no-store",
         },
     });

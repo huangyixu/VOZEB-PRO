@@ -1,65 +1,65 @@
 services:
   - type: web
-    name: venlinks-pro
+    name: venlinks
     runtime: docker
     plan: starter
     autoDeployTrigger: off
     healthCheckPath: /api/health/live
     disk:
-      name: venlinks-pro-data
+      name: venlinks-data
       mountPath: /app/web/.data
       sizeGB: 10
     envVars:
-      - fromGroup: venlinks-pro-runtime
+      - fromGroup: venlinks-runtime
       - key: PORT
         value: 3000
       - key: NODE_OPTIONS
         value: --max-old-space-size=384
       - key: UV_THREADPOOL_SIZE
         value: "2"
-      - key: VENLINKS_PRO_DATA_DIR
+      - key: VENLINKS_DATA_DIR
         value: /app/web/.data
-      - key: VENLINKS_PRO_INTERNAL_ORIGIN
+      - key: VENLINKS_INTERNAL_ORIGIN
         value: http://127.0.0.1:3000
-      - key: VENLINKS_PRO_DATABASE_PROVIDER
+      - key: VENLINKS_DATABASE_PROVIDER
         value: postgres
       - key: DATABASE_URL
         fromDatabase:
-          name: venlinks-pro-postgres
+          name: venlinks-postgres
           property: connectionString
-      - key: VENLINKS_PRO_DATABASE_POOL_MAX
+      - key: VENLINKS_DATABASE_POOL_MAX
         value: "5"
-      - key: VENLINKS_PRO_DATABASE_SSL
+      - key: VENLINKS_DATABASE_SSL
         value: "1"
-      - key: VENLINKS_PRO_ENCRYPTION_KEY
+      - key: VENLINKS_ENCRYPTION_KEY
         generateValue: true
       - key: NEXT_PUBLIC_SITE_URL
         sync: false
 
   - type: worker
-    name: venlinks-pro-generation-worker
+    name: venlinks-generation-worker
     runtime: docker
     plan: starter
     autoDeployTrigger: off
     dockerCommand: node /app/web/scripts/generation-worker.mjs
     envVars:
-      - fromGroup: venlinks-pro-runtime
+      - fromGroup: venlinks-runtime
       - key: NODE_OPTIONS
         value: --max-old-space-size=128
-      - key: VENLINKS_PRO_WORKER_API_ORIGIN
+      - key: VENLINKS_WORKER_API_ORIGIN
         fromService:
-          name: venlinks-pro
+          name: venlinks
           type: web
           property: hostport
 
 databases:
-  - name: venlinks-pro-postgres
+  - name: venlinks-postgres
     plan: basic-256mb
-    databaseName: venlinks_pro
-    user: venlinks_pro
+    databaseName: venlinks
+    user: venlinks
 
 envVarGroups:
-  - name: venlinks-pro-runtime
+  - name: venlinks-runtime
     envVars:
-      - key: VENLINKS_PRO_MAINTENANCE_TOKEN
+      - key: VENLINKS_MAINTENANCE_TOKEN
         generateValue: true

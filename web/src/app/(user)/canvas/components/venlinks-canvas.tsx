@@ -6,7 +6,7 @@ import { canvasThemes, type CanvasBackgroundMode } from "@/lib/canvas-theme";
 import { useThemeStore } from "@/stores/use-theme-store";
 import type { ViewportTransform } from "../types";
 
-type VenLinksProCanvasProps = {
+type VenLinksCanvasProps = {
     containerRef: React.RefObject<HTMLDivElement | null>;
     viewport: ViewportTransform;
     backgroundMode?: CanvasBackgroundMode;
@@ -19,7 +19,7 @@ type VenLinksProCanvasProps = {
     children: React.ReactNode;
 };
 
-export function VenLinksProCanvas({ containerRef, viewport, backgroundMode = "lines", onViewportChange, onCanvasMouseDown, onCanvasDeselect, onCanvasDoubleClick, onContextMenu, onDrop, children }: VenLinksProCanvasProps) {
+export function VenLinksCanvas({ containerRef, viewport, backgroundMode = "lines", onViewportChange, onCanvasMouseDown, onCanvasDeselect, onCanvasDoubleClick, onContextMenu, onDrop, children }: VenLinksCanvasProps) {
     const theme = canvasThemes[useThemeStore((state) => state.theme)];
     const viewportRef = useRef(viewport);
     const panState = useRef({

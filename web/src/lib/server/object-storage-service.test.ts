@@ -53,7 +53,7 @@ const config = {
     endpoint: "https://oss.example.com",
     region: "auto",
     bucket: "media",
-    prefix: "venlinks-pro",
+    prefix: "venlinks",
     accessKeyId: "access",
     secretAccessKey: "secret",
     forcePathStyle: false,
@@ -99,7 +99,7 @@ describe("object storage media service", () => {
     });
 
     it("uploads and registers object media, rolling the object back when registration fails", async () => {
-        const objectKey = `venlinks-pro/media/reference/${registration.storageKey}`;
+        const objectKey = `venlinks/media/reference/${registration.storageKey}`;
         await persistExternalMediaIfEnabled({ registration, bytes: Buffer.from("data") });
         expect(mocks.putBytes).toHaveBeenCalledWith(config, expect.objectContaining({ key: objectKey, contentType: "image/png" }));
         expect(mocks.register).toHaveBeenCalledWith(expect.objectContaining({ storageProvider: "object", externalObjectKey: objectKey }));
@@ -111,7 +111,7 @@ describe("object storage media service", () => {
 
     it("continues signing existing object media after the write switch is disabled", async () => {
         mocks.config.mockResolvedValue({ ...config, enabled: false });
-        const objectRegistration = { ...registration, originalName: "生成结果", storageProvider: "object" as const, externalStorageId: "default", externalObjectKey: "venlinks-pro/media/reference/file.png" };
+        const objectRegistration = { ...registration, originalName: "生成结果", storageProvider: "object" as const, externalStorageId: "default", externalObjectKey: "venlinks/media/reference/file.png" };
 
         const url = await createExternalMediaReadUrl(new Request("http://localhost/media?download=original"), objectRegistration);
 
@@ -121,28 +121,28 @@ describe("object storage media service", () => {
     });
 
     it("uses a bounded WebP object variant for image previews", async () => {
-        const objectRegistration = { ...registration, storageProvider: "object" as const, externalStorageId: "default", externalObjectKey: "venlinks-pro/media/reference/file.png" };
+        const objectRegistration = { ...registration, storageProvider: "object" as const, externalStorageId: "default", externalObjectKey: "venlinks/media/reference/file.png" };
 
         await createExternalMediaReadUrl(new Request("http://localhost/media?format=webp&width=320"), objectRegistration);
 
-        expect(mocks.objectExists).toHaveBeenCalledWith(config, "venlinks-pro/media/reference/file.png.venlinks-preview/webp-320.webp");
+        expect(mocks.objectExists).toHaveBeenCalledWith(config, "venlinks/media/reference/file.png.venlinks-preview/webp-320.webp");
         expect(mocks.getBytes).not.toHaveBeenCalled();
         expect(mocks.signRead).toHaveBeenCalledWith(config, expect.objectContaining({ contentType: "image/webp", expiresIn: 120 }));
     });
 
     it("serves administrator object previews as bounded WebP variants only", async () => {
-        const imageKey = "venlinks-pro/media/reference/file.png";
+        const imageKey = "venlinks/media/reference/file.png";
 
         await expect(createExternalStorageImagePreviewUrl(imageKey, "500")).resolves.toBe("https://oss.example.com/signed");
 
         expect(mocks.objectExists).toHaveBeenCalledWith(config, `${imageKey}.venlinks-preview/webp-640.webp`);
         expect(mocks.signRead).toHaveBeenCalledWith(config, expect.objectContaining({ key: `${imageKey}.venlinks-preview/webp-640.webp`, contentType: "image/webp", contentDisposition: expect.stringContaining("file.webp") }));
         await expect(createExternalStorageImagePreviewUrl("outside-prefix/file.png", 256)).resolves.toBeNull();
-        await expect(createExternalStorageImagePreviewUrl("venlinks-pro/files/archive.zip", 256)).resolves.toBeNull();
+        await expect(createExternalStorageImagePreviewUrl("venlinks/files/archive.zip", 256)).resolves.toBeNull();
     });
 
     it("keeps streaming media urls valid long enough for playback and seeking", async () => {
-        const videoRegistration = { ...registration, type: "video" as const, mimeType: "video/mp4", storageProvider: "object" as const, externalStorageId: "default", externalObjectKey: "venlinks-pro/media/reference/video.mp4" };
+        const videoRegistration = { ...registration, type: "video" as const, mimeType: "video/mp4", storageProvider: "object" as const, externalStorageId: "default", externalObjectKey: "venlinks/media/reference/video.mp4" };
 
         await createExternalMediaReadUrl(new Request("http://localhost/media"), videoRegistration);
 
@@ -150,8 +150,8 @@ describe("object storage media service", () => {
     });
 
     it("blocks deletion of referenced objects and deletes unregistered objects", async () => {
-        const protectedKey = "venlinks-pro/media/reference/protected.png";
-        const freeKey = "venlinks-pro/media/reference/free.png";
+        const protectedKey = "venlinks/media/reference/protected.png";
+        const freeKey = "venlinks/media/reference/free.png";
         mocks.listByObjectKeys.mockResolvedValue([{ ...registration, storageProvider: "object", externalObjectKey: protectedKey }]);
         mocks.references.mockResolvedValue(new Map([[registration.storageKey, 2]]));
 
@@ -163,8 +163,8 @@ describe("object storage media service", () => {
     });
 
     it("classifies attachments and fills a filtered page across object cursors", async () => {
-        const attachmentKey = "venlinks-pro/files/archive.zip";
-        const imageKey = "venlinks-pro/media/reference/permanent/2026/07/24/images/drama.png";
+        const attachmentKey = "venlinks/files/archive.zip";
+        const imageKey = "venlinks/media/reference/permanent/2026/07/24/images/drama.png";
         mocks.listObjects.mockResolvedValueOnce({ items: [{ key: attachmentKey, bytes: 8 }], nextCursor: "next" }).mockResolvedValueOnce({ items: [{ key: imageKey, bytes: 4 }], nextCursor: undefined });
         mocks.listByObjectKeys.mockImplementation(async (keys: string[]) => (keys.includes(imageKey) ? [{ ...registration, source: "drama-render", storageProvider: "object", externalObjectKey: imageKey }] : []));
 

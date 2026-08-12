@@ -60,9 +60,9 @@ function alipayConfig(): PaymentRuntimeConfig {
         saved: { providers: {} },
         providers: { alipay: { enabled: true, saved: true } },
         valuesByEnvName: {
-            VENLINKS_PRO_ALIPAY_MODE: "face_to_face",
-            VENLINKS_PRO_ALIPAY_APP_ID: "2026000000000000",
-            VENLINKS_PRO_ALIPAY_PUBLIC_KEY: alipayPublicKey,
+            VENLINKS_ALIPAY_MODE: "face_to_face",
+            VENLINKS_ALIPAY_APP_ID: "2026000000000000",
+            VENLINKS_ALIPAY_PUBLIC_KEY: alipayPublicKey,
         },
     };
 }

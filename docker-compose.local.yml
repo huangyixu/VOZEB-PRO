@@ -1,17 +1,17 @@
 services:
   postgres:
-    image: ${VENLINKS_PRO_POSTGRES_IMAGE:-docker.m.daocloud.io/library/postgres:16-alpine}
+    image: ${VENLINKS_POSTGRES_IMAGE:-docker.m.daocloud.io/library/postgres:16-alpine}
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-venlinks_pro}
-      POSTGRES_USER: ${POSTGRES_USER:-venlinks_pro}
+      POSTGRES_DB: ${POSTGRES_DB:-venlinks}
+      POSTGRES_USER: ${POSTGRES_USER:-venlinks}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?请在 .env 中配置 POSTGRES_PASSWORD}
     volumes:
-      - venlinks-pro-postgres:/var/lib/postgresql/data
+      - venlinks-postgres:/var/lib/postgresql/data
     healthcheck:
       test:
         [
           "CMD-SHELL",
-          "pg_isready -U ${POSTGRES_USER:-venlinks_pro} -d ${POSTGRES_DB:-venlinks_pro}",
+          "pg_isready -U ${POSTGRES_USER:-venlinks} -d ${POSTGRES_DB:-venlinks}",
         ]
       interval: 5s
       timeout: 5s
@@ -19,31 +19,31 @@ services:
     restart: unless-stopped
 
   app:
-    image: venlinks-pro:local
+    image: venlinks:local
     build:
       context: .
       dockerfile: Dockerfile
       args:
-        VENLINKS_PRO_NODE_IMAGE: ${VENLINKS_PRO_NODE_IMAGE:-docker.m.daocloud.io/library/node:22-bookworm-slim}
-        VENLINKS_PRO_NPM_REGISTRY: ${VENLINKS_PRO_NPM_REGISTRY:-https://registry.npmmirror.com}
-        VENLINKS_PRO_DEBIAN_MIRROR: ${VENLINKS_PRO_DEBIAN_MIRROR:-http://mirrors.aliyun.com/debian}
-        VENLINKS_PRO_DEBIAN_SECURITY_MIRROR: ${VENLINKS_PRO_DEBIAN_SECURITY_MIRROR:-http://mirrors.aliyun.com/debian-security}
+        VENLINKS_NODE_IMAGE: ${VENLINKS_NODE_IMAGE:-docker.m.daocloud.io/library/node:22-bookworm-slim}
+        VENLINKS_NPM_REGISTRY: ${VENLINKS_NPM_REGISTRY:-https://registry.npmmirror.com}
+        VENLINKS_DEBIAN_MIRROR: ${VENLINKS_DEBIAN_MIRROR:-http://mirrors.aliyun.com/debian}
+        VENLINKS_DEBIAN_SECURITY_MIRROR: ${VENLINKS_DEBIAN_SECURITY_MIRROR:-http://mirrors.aliyun.com/debian-security}
     env_file:
       - .env
     ports:
-      - "${VENLINKS_PRO_HOST_PORT:-3002}:3000"
+      - "${VENLINKS_HOST_PORT:-3002}:3000"
     volumes:
-      - venlinks-pro-data:/app/web/.data
+      - venlinks-data:/app/web/.data
     environment:
       NEXT_TELEMETRY_DISABLED: "1"
-      VENLINKS_PRO_DATA_DIR: /app/web/.data
-      VENLINKS_PRO_INTERNAL_ORIGIN: http://127.0.0.1:3000
-      VENLINKS_PRO_DATABASE_PROVIDER: postgres
-      DATABASE_URL: postgres://${POSTGRES_USER:-venlinks_pro}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-venlinks_pro}
-      VENLINKS_PRO_DATABASE_POOL_MAX: ${VENLINKS_PRO_DATABASE_POOL_MAX:-10}
-      VENLINKS_PRO_DATABASE_SSL: "0"
-      VENLINKS_PRO_ENCRYPTION_KEY: ${VENLINKS_PRO_ENCRYPTION_KEY:?请在 .env 中配置 VENLINKS_PRO_ENCRYPTION_KEY}
-      VENLINKS_PRO_MAINTENANCE_TOKEN: ${VENLINKS_PRO_MAINTENANCE_TOKEN:?请在 .env 中配置至少 32 位维护令牌}
+      VENLINKS_DATA_DIR: /app/web/.data
+      VENLINKS_INTERNAL_ORIGIN: http://127.0.0.1:3000
+      VENLINKS_DATABASE_PROVIDER: postgres
+      DATABASE_URL: postgres://${POSTGRES_USER:-venlinks}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-venlinks}
+      VENLINKS_DATABASE_POOL_MAX: ${VENLINKS_DATABASE_POOL_MAX:-10}
+      VENLINKS_DATABASE_SSL: "0"
+      VENLINKS_ENCRYPTION_KEY: ${VENLINKS_ENCRYPTION_KEY:?请在 .env 中配置 VENLINKS_ENCRYPTION_KEY}
+      VENLINKS_MAINTENANCE_TOKEN: ${VENLINKS_MAINTENANCE_TOKEN:?请在 .env 中配置至少 32 位维护令牌}
     depends_on:
       postgres:
         condition: service_healthy
@@ -62,18 +62,18 @@ services:
     restart: unless-stopped
 
   generation-worker:
-    image: venlinks-pro:local
+    image: venlinks:local
     command: ["node", "/app/web/scripts/generation-worker.mjs"]
     env_file:
       - .env
     environment:
-      VENLINKS_PRO_WORKER_API_ORIGIN: http://app:3000
-      VENLINKS_PRO_MAINTENANCE_TOKEN: ${VENLINKS_PRO_MAINTENANCE_TOKEN:?请在 .env 中配置至少 32 位维护令牌}
+      VENLINKS_WORKER_API_ORIGIN: http://app:3000
+      VENLINKS_MAINTENANCE_TOKEN: ${VENLINKS_MAINTENANCE_TOKEN:?请在 .env 中配置至少 32 位维护令牌}
     depends_on:
       app:
         condition: service_healthy
     restart: unless-stopped
 
 volumes:
-  venlinks-pro-data:
-  venlinks-pro-postgres:
+  venlinks-data:
+  venlinks-postgres:

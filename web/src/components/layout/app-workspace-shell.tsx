@@ -22,7 +22,7 @@ export function AppWorkspaceShell({ children }: { children: ReactNode }) {
     const pathname = usePathname();
     const [mobileNavOpen, setMobileNavOpen] = useState(false);
     const [sidebarExpanded, setSidebarExpanded] = useState(false);
-    const site = usePublicSessionStore((state) => state.payload?.settings?.site) || { title: "VenLinks PRO", logoUrl: "/logo.svg" };
+    const site = usePublicSessionStore((state) => state.payload?.settings?.site) || { title: "VenLinks", logoUrl: "/logo.png" };
     const tool = navigationToolForPathname(pathname);
     const fullscreen = /^\/canvas\/[^/]+/.test(pathname);
     const rootSlug = pathname.split("/").filter(Boolean)[0] || "";
@@ -45,7 +45,7 @@ export function AppWorkspaceShell({ children }: { children: ReactNode }) {
                         >
                             <Menu className="size-5" />
                         </button>
-                        <Link href="/create" className="inline-flex shrink-0 items-center lg:hidden" aria-label={site.title || "VenLinks PRO"}>
+                        <Link href="/create" className="inline-flex shrink-0 items-center lg:hidden" aria-label={site.title || "VenLinks"}>
                             <SiteLogo logoUrl={site.logoUrl} className="size-6" />
                         </Link>
                         <button

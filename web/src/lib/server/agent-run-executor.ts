@@ -14,8 +14,8 @@ import { GenerationSubmissionUncertainError } from "@/lib/server/generation-subm
 import { rankTextPlanningCandidates } from "@/lib/server/text-planning-runtime";
 import { filterAgentPlannerModels } from "@/lib/server/agent-run-planning-profile";
 
-const globalAgentExecutors = globalThis as typeof globalThis & { __venLinksProAgentRunControllers?: Map<string, AbortController> };
-const controllers = (globalAgentExecutors.__venLinksProAgentRunControllers ??= new Map<string, AbortController>());
+const globalAgentExecutors = globalThis as typeof globalThis & { __venLinksAgentRunControllers?: Map<string, AbortController> };
+const controllers = (globalAgentExecutors.__venLinksAgentRunControllers ??= new Map<string, AbortController>());
 
 export function abortAgentRun(id: string) {
     controllers.get(id)?.abort();

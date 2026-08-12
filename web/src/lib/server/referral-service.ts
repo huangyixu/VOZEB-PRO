@@ -503,7 +503,7 @@ function generateReferralCode() {
 
 function hashReferralRiskValue(kind: string, value: unknown) {
     const text = typeof value === "string" ? value.trim() : "";
-    const secret = process.env.VENLINKS_PRO_ENCRYPTION_KEY?.trim() || "";
+    const secret = process.env.VENLINKS_ENCRYPTION_KEY?.trim() || "";
     if (!text || !secret) return undefined;
     return createHmac("sha256", secret).update(`${kind}\0${text}`).digest("hex");
 }

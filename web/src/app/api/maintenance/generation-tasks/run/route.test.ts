@@ -70,7 +70,7 @@ function request(workerId = "") {
         method: "POST",
         headers: {
             authorization: "Bearer test-token",
-            ...(workerId ? { "x-venlinks-pro-worker-id": workerId } : {}),
+            ...(workerId ? { "x-venlinks-worker-id": workerId } : {}),
         },
     });
 }

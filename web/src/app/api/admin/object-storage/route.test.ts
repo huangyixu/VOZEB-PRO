@@ -21,7 +21,7 @@ const settings = {
     endpoint: "https://oss.example.com",
     region: "auto",
     bucket: "media",
-    prefix: "venlinks-pro",
+    prefix: "venlinks",
     forcePathStyle: false,
     hasAccessKeyId: true,
     hasSecretAccessKey: true,

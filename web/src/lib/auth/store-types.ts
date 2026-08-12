@@ -334,7 +334,7 @@ export const DEFAULT_SITE_SOCIALS: SiteSocialSettings = {
 };
 
 export const DEFAULT_SITE_FRIEND_LINKS: SiteFriendLink[] = [
-    { id: "venlinks-pro-home", label: "VenLinks PRO", url: "https://www.venlinks.com/", enabled: true },
+    { id: "venlinks-home", label: "VenLinks", url: "https://www.venlinks.com/", enabled: true },
     { id: "qq-venlinks-open-source", label: "VenLinks 开源交流 QQ 群", url: VENLINKS_QQ_GROUP_URL, enabled: true },
     { id: "linux-do", label: "Linux.do", url: "https://linux.do/", enabled: true },
 ];

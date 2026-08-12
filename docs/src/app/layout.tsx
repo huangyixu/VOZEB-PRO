@@ -4,13 +4,13 @@ import "./global.css";
 
 export const metadata: Metadata = {
   title: {
-    default: "VenLinks PRO 文档",
-    template: "%s | VenLinks PRO 文档",
+    default: "VenLinks 文档",
+    template: "%s | VenLinks 文档",
   },
   description:
-    "VenLinks PRO - AI创意工作台官方文档，提供图片、视频、音频、短剧等多种AI生成能力的完整指南。",
+    "VenLinks - AI创意工作台官方文档，提供图片、视频、音频、短剧等多种AI生成能力的完整指南。",
   keywords: [
-    "VenLinks PRO",
+    "VenLinks",
     "AI创意",
     "图片生成",
     "视频生成",
@@ -36,16 +36,16 @@ export const metadata: Metadata = {
     type: "website",
     locale: "zh_CN",
     url: "/",
-    title: "VenLinks PRO 文档",
-    description: "VenLinks PRO - AI创意工作台官方文档",
-    siteName: "VenLinks PRO 文档",
-    images: ["/logo.svg"],
+    title: "VenLinks 文档",
+    description: "VenLinks - AI创意工作台官方文档",
+    siteName: "VenLinks 文档",
+    images: ["/logo.png"],
   },
   twitter: {
     card: "summary_large_image",
-    title: "VenLinks PRO 文档",
-    description: "VenLinks PRO - AI创意工作台官方文档",
-    images: ["/logo.svg"],
+    title: "VenLinks 文档",
+    description: "VenLinks - AI创意工作台官方文档",
+    images: ["/logo.png"],
   },
   robots: {
     index: true,

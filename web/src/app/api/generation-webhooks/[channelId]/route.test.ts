@@ -60,7 +60,7 @@ describe("POST /api/generation-webhooks/:channelId", () => {
 function request(body: unknown) {
     return new Request("http://localhost/api/generation-webhooks/channel-one", {
         method: "POST",
-        headers: { "content-type": "application/json", "x-venlinks-pro-signature": "signature" },
+        headers: { "content-type": "application/json", "x-venlinks-signature": "signature" },
         body: JSON.stringify(body),
     });
 }

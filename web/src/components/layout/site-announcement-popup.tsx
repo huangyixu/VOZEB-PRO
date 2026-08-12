@@ -73,5 +73,5 @@ export function SiteAnnouncementPopup() {
 }
 
 function dismissKey(id: string, context: string) {
-    return `venlinks-pro:announcement-dismissed:${context}:${id}`;
+    return `venlinks:announcement-dismissed:${context}:${id}`;
 }

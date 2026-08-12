@@ -4,8 +4,8 @@ services:
       context: ..
       dockerfile: docs/Dockerfile
       args:
-        VENLINKS_PRO_NODE_IMAGE: ${VENLINKS_PRO_NODE_IMAGE:-docker.m.daocloud.io/library/node:22-bookworm-slim}
-        VENLINKS_PRO_NPM_REGISTRY: ${VENLINKS_PRO_NPM_REGISTRY:-https://registry.npmmirror.com}
+        VENLINKS_NODE_IMAGE: ${VENLINKS_NODE_IMAGE:-docker.m.daocloud.io/library/node:22-bookworm-slim}
+        VENLINKS_NPM_REGISTRY: ${VENLINKS_NPM_REGISTRY:-https://registry.npmmirror.com}
     ports:
       - "3001:3000"
     restart: unless-stopped

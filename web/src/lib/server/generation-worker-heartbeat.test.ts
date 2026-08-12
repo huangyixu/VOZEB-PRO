@@ -10,7 +10,7 @@ import { getGenerationWorkerHealth, recordGenerationWorkerHeartbeat } from "./ge
 describe("generation Worker heartbeat", () => {
     beforeEach(() => {
         vi.clearAllMocks();
-        (globalThis as typeof globalThis & { __venLinksProGenerationWorkerHeartbeats?: Map<string, number> }).__venLinksProGenerationWorkerHeartbeats?.clear();
+        (globalThis as typeof globalThis & { __venLinksGenerationWorkerHeartbeats?: Map<string, number> }).__venLinksGenerationWorkerHeartbeats?.clear();
         mocks.configured.mockReturnValue(true);
     });
 
@@ -29,7 +29,7 @@ describe("generation Worker heartbeat", () => {
         await recordGenerationWorkerHeartbeat("worker-old", 1_000_000);
         await recordGenerationWorkerHeartbeat("worker-current", 1_600_001);
 
-        const heartbeats = (globalThis as typeof globalThis & { __venLinksProGenerationWorkerHeartbeats?: Map<string, number> }).__venLinksProGenerationWorkerHeartbeats;
+        const heartbeats = (globalThis as typeof globalThis & { __venLinksGenerationWorkerHeartbeats?: Map<string, number> }).__venLinksGenerationWorkerHeartbeats;
         expect([...(heartbeats?.keys() || [])]).toEqual(["worker-current"]);
     });
 });

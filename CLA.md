@@ -2,7 +2,7 @@
 
 This Contributor License Agreement ("Agreement") applies to any code,
 documentation, design asset, issue text, pull request, patch, or other
-material ("Contribution") that you submit to the VenLinks PRO project
+material ("Contribution") that you submit to the VenLinks project
 ("Project").
 
 By submitting a Contribution, you agree to the terms below.

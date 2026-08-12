@@ -64,16 +64,16 @@ const defaultSite: {
     friendLinks: SiteFriendLink[];
     socials: SiteSocialSettings;
 } = {
-    title: "VenLinks PRO",
-    logoUrl: "/logo.svg",
+    title: "VenLinks",
+    logoUrl: "/logo.png",
     seoDescription: "面向 Agent、图片、视频、画布与短剧生产的一体化 AI 创作工作台",
-    footerCopyright: "© 2026 VenLinks PRO. All rights reserved.",
+    footerCopyright: "© 2026 VenLinks. All rights reserved.",
     termsUrl: "/terms",
     privacyUrl: "/privacy",
     homeShowcaseMode: "random",
     homeShowcaseItems: [],
     friendLinks: [
-        { id: "venlinks-pro-home", label: "VenLinks PRO", url: "https://www.venlinks.com/", enabled: true },
+        { id: "venlinks-home", label: "VenLinks", url: "https://www.venlinks.com/", enabled: true },
         { id: "qq-venlinks-open-source", label: "VenLinks 开源交流 QQ 群", url: VENLINKS_QQ_GROUP_URL, enabled: true },
         { id: "linux-do", label: "Linux.do", url: "https://linux.do/", enabled: true },
     ],
@@ -130,7 +130,7 @@ export default function HomePage() {
     const showcaseCards = homeShowcaseItems;
     const previewItems = promptShowcase.filter((item) => item.coverUrl);
     const hasVerifiedUser = sessionReady && Boolean(user);
-    const siteTitle = site.title || "VenLinks PRO";
+    const siteTitle = site.title || "VenLinks";
 
     const moveNavIndicator = useCallback((index: number) => {
         const item = navItemRefs.current[index];

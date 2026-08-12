@@ -5,7 +5,7 @@ import { normalizeSiteSettings } from "./store-normalizers";
 
 describe("site settings", () => {
     it("uses the bundled browser icon when older settings have no icon URL", () => {
-        expect(normalizeSiteSettings({ logoUrl: "/custom-logo.svg" }).iconUrl).toBe(DEFAULT_SITE_SETTINGS.iconUrl);
+        expect(normalizeSiteSettings({ logoUrl: "/custom-logo.png" }).iconUrl).toBe(DEFAULT_SITE_SETTINGS.iconUrl);
     });
 
     it("accepts a configured browser icon independently from the logo", () => {
@@ -13,6 +13,12 @@ describe("site settings", () => {
 
         expect(settings.logoUrl).toBe("/brand.svg");
         expect(settings.iconUrl).toBe("https://cdn.example.com/favicon.ico");
+    });
+
+    it("upgrades the previous default brand name and asset paths", () => {
+        const settings = normalizeSiteSettings({ title: ["VenLinks", "PRO"].join(" "), seoTitle: ["VenLinks", "Pro"].join(" "), logoUrl: "/logo.svg", iconUrl: "/icon.svg" });
+
+        expect(settings).toMatchObject({ title: "VenLinks", seoTitle: "VenLinks", logoUrl: "/logo.png", iconUrl: "/icon.png" });
     });
 
     it("defaults public contacts to the VenLinks email and QQ group", () => {

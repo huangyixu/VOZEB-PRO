@@ -28,7 +28,7 @@ describe("GlobalAiOpc image task paths", () => {
 
     it("preserves maintenance authorization for the internal system proxy", () => {
         const token = "m".repeat(32);
-        vi.stubEnv("VENLINKS_PRO_MAINTENANCE_TOKEN", token);
+        vi.stubEnv("VENLINKS_MAINTENANCE_TOKEN", token);
         const headers = taskHeaders(
             {
                 baseUrl: "/api/ai/system/channel-one",
@@ -42,8 +42,8 @@ describe("GlobalAiOpc image task paths", () => {
         );
 
         expect(headers.get("authorization")).toBe(`Bearer ${token}`);
-        expect(headers.get("x-venlinks-pro-worker-user-id")).toBe("user-one");
-        expect(headers.get("x-venlinks-pro-logical-model")).toBe("image-logical");
+        expect(headers.get("x-venlinks-worker-user-id")).toBe("user-one");
+        expect(headers.get("x-venlinks-logical-model")).toBe("image-logical");
     });
 
     it("upscales small exact dimensions for the provider instead of rejecting the task", () => {

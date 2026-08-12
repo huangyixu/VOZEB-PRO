@@ -21,7 +21,7 @@ import { CanvasNodeUpscaleDialog } from "../components/canvas-node-upscale-dialo
 import { CanvasToolbar } from "../components/canvas-toolbar";
 import { CanvasTopBar } from "../components/canvas-top-bar";
 import { CanvasZoomControls } from "../components/canvas-zoom-controls";
-import { VenLinksProCanvas } from "../components/venlinks-pro-canvas";
+import { VenLinksCanvas } from "../components/venlinks-canvas";
 import { CanvasNodeType, type Position } from "../types";
 
 const CanvasAssistantPanel = dynamic(() => import("../components/canvas-assistant-panel").then((mod) => mod.CanvasAssistantPanel), { ssr: false });
@@ -40,12 +40,12 @@ export default function CanvasPage() {
 
     if (!mounted) return <CanvasRefreshShell />;
 
-    return <VenLinksProCanvasPage />;
+    return <VenLinksCanvasPage />;
 }
 
 import { useCanvasPageController } from "./use-canvas-page-controller";
 
-function VenLinksProCanvasPage() {
+function VenLinksCanvasPage() {
     const [nodeCreatePosition, setNodeCreatePosition] = useState<Position | null>(null);
     const controller = useCanvasPageController();
     const {
@@ -318,7 +318,7 @@ function VenLinksProCanvasPage() {
                     onToggleAgent={() => (assistantOpen ? closeAgent() : openAgent())}
                 />
 
-                <VenLinksProCanvas
+                <VenLinksCanvas
                     containerRef={containerRef}
                     viewport={viewport}
                     backgroundMode={backgroundMode}
@@ -491,7 +491,7 @@ function VenLinksProCanvasPage() {
                             onClose={() => setNodeCreatePosition(null)}
                         />
                     ) : null}
-                </VenLinksProCanvas>
+                </VenLinksCanvas>
 
                 <CanvasNodeHoverToolbar
                     node={isNodeDragging || nodeImageSettingsOpen ? null : toolbarNode}

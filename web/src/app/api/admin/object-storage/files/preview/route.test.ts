@@ -16,24 +16,24 @@ describe("administrator object storage image preview API", () => {
 
     it("requires an administrator", async () => {
         mocks.user.mockResolvedValueOnce(null);
-        expect((await GET(new Request("http://localhost/api/admin/object-storage/files/preview?key=venlinks-pro/file.png"))).status).toBe(401);
+        expect((await GET(new Request("http://localhost/api/admin/object-storage/files/preview?key=venlinks/file.png"))).status).toBe(401);
         mocks.user.mockResolvedValueOnce({ id: "user", role: "user" });
-        expect((await GET(new Request("http://localhost/api/admin/object-storage/files/preview?key=venlinks-pro/file.png"))).status).toBe(403);
+        expect((await GET(new Request("http://localhost/api/admin/object-storage/files/preview?key=venlinks/file.png"))).status).toBe(403);
         expect(mocks.preview).not.toHaveBeenCalled();
     });
 
     it("redirects an authorized request to the WebP object variant", async () => {
-        const response = await GET(new Request("http://localhost/api/admin/object-storage/files/preview?key=venlinks-pro/file.png&width=640"));
+        const response = await GET(new Request("http://localhost/api/admin/object-storage/files/preview?key=venlinks/file.png&width=640"));
 
         expect(response.status).toBe(307);
         expect(response.headers.get("location")).toBe("https://oss.example.com/preview.webp?signature=test");
         expect(response.headers.get("x-content-type-options")).toBe("nosniff");
-        expect(mocks.preview).toHaveBeenCalledWith("venlinks-pro/file.png", "640");
+        expect(mocks.preview).toHaveBeenCalledWith("venlinks/file.png", "640");
     });
 
     it("does not expose invalid or non-image objects", async () => {
         mocks.preview.mockResolvedValueOnce(null);
-        const response = await GET(new Request("http://localhost/api/admin/object-storage/files/preview?key=venlinks-pro/file.zip"));
+        const response = await GET(new Request("http://localhost/api/admin/object-storage/files/preview?key=venlinks/file.zip"));
         expect(response.status).toBe(404);
     });
 });

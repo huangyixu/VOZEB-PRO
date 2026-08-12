@@ -44,8 +44,8 @@ describe("low-memory release type-check contract", () => {
             await Promise.all([
                 writeFile(path.join(fixtureRoot, distDir, "standalone", "server.js"), "server"),
                 writeFile(path.join(fixtureRoot, distDir, "static", "chunks", "app.js"), "chunk"),
-                writeFile(path.join(fixtureRoot, "public", "logo.svg"), "logo"),
-                writeFile(path.join(fixtureRoot, "public", "icon.svg"), "icon"),
+                writeFile(path.join(fixtureRoot, "public", "logo.png"), "logo"),
+                writeFile(path.join(fixtureRoot, "public", "icon.png"), "icon"),
                 writeFile(path.join(fixtureRoot, "public", "icons", "icon-192.png"), "png"),
             ]);
 
@@ -54,7 +54,7 @@ describe("low-memory release type-check contract", () => {
             expect(result.staticFiles).toBe(1);
             expect(result.publicFiles).toBe(3);
             expect(existsSync(path.join(fixtureRoot, distDir, "standalone", distDir, "static", "chunks", "app.js"))).toBe(true);
-            expect(existsSync(path.join(fixtureRoot, distDir, "standalone", "public", "logo.svg"))).toBe(true);
+            expect(existsSync(path.join(fixtureRoot, distDir, "standalone", "public", "logo.png"))).toBe(true);
             expect(existsSync(path.join(fixtureRoot, distDir, "standalone", "public", "icons", "icon-192.png"))).toBe(true);
         } finally {
             await rm(fixtureRoot, { recursive: true, force: true });

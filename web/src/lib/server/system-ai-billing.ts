@@ -1,8 +1,8 @@
 import { createHash } from "node:crypto";
 
-export const SYSTEM_AI_LOGICAL_MODEL_HEADER = "x-venlinks-pro-logical-model";
-export const SYSTEM_AI_POINTS_IDEMPOTENCY_HEADER = "x-venlinks-pro-points-idempotency-key";
-export const SYSTEM_AI_UPSTREAM_MODEL_HEADER = "x-venlinks-pro-upstream-model";
+export const SYSTEM_AI_LOGICAL_MODEL_HEADER = "x-venlinks-logical-model";
+export const SYSTEM_AI_POINTS_IDEMPOTENCY_HEADER = "x-venlinks-points-idempotency-key";
+export const SYSTEM_AI_UPSTREAM_MODEL_HEADER = "x-venlinks-upstream-model";
 
 export type SystemAiBilling = {
     pointsCost?: number;
@@ -28,11 +28,11 @@ export function systemAiIdempotencyKey(scope: string, ...parts: string[]) {
 }
 
 export function readSystemAiBilling(headers: Headers): SystemAiBilling {
-    const rawCost = headers.get("x-venlinks-pro-points-cost");
+    const rawCost = headers.get("x-venlinks-points-cost");
     const cost = rawCost === null ? undefined : Number(rawCost);
     return {
         pointsCost: cost !== undefined && Number.isFinite(cost) && cost >= 0 ? cost : undefined,
-        pointsRecordId: headers.get("x-venlinks-pro-points-record-id") || undefined,
+        pointsRecordId: headers.get("x-venlinks-points-record-id") || undefined,
     };
 }
 

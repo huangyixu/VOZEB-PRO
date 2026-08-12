@@ -520,16 +520,16 @@ function responseHeaders(headers: Headers, pointsResult?: Awaited<ReturnType<typ
         const value = headers.get(key);
         if (value) nextHeaders.set(key, value);
     });
-    if (upstreamUrl) nextHeaders.set("x-venlinks-pro-upstream-url", upstreamUrl);
+    if (upstreamUrl) nextHeaders.set("x-venlinks-upstream-url", upstreamUrl);
     if (pointsResult) {
-        nextHeaders.set("x-venlinks-pro-points-cost", String(pointsResult.cost));
-        nextHeaders.set("x-venlinks-pro-points-remaining", String(pointsResult.remaining));
-        nextHeaders.set("x-venlinks-pro-points-permanent", String(pointsResult.permanentRemaining));
-        nextHeaders.set("x-venlinks-pro-points-daily", String(pointsResult.dailyRemaining));
-        nextHeaders.set("x-venlinks-pro-points-daily-expires-at", pointsResult.dailyExpiresAt);
-        if (pointsResult.recordId) nextHeaders.set("x-venlinks-pro-points-record-id", pointsResult.recordId);
+        nextHeaders.set("x-venlinks-points-cost", String(pointsResult.cost));
+        nextHeaders.set("x-venlinks-points-remaining", String(pointsResult.remaining));
+        nextHeaders.set("x-venlinks-points-permanent", String(pointsResult.permanentRemaining));
+        nextHeaders.set("x-venlinks-points-daily", String(pointsResult.dailyRemaining));
+        nextHeaders.set("x-venlinks-points-daily-expires-at", pointsResult.dailyExpiresAt);
+        if (pointsResult.recordId) nextHeaders.set("x-venlinks-points-record-id", pointsResult.recordId);
     } else if (typeof refundedPointsRemaining === "number") {
-        nextHeaders.set("x-venlinks-pro-points-remaining", String(refundedPointsRemaining));
+        nextHeaders.set("x-venlinks-points-remaining", String(refundedPointsRemaining));
     }
     return nextHeaders;
 }

@@ -2,16 +2,16 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import { createSignedReferenceAssetUrl, signReferenceAssetInputUrl, verifyReferenceAssetSignature } from "./reference-asset-access";
 
-const previousKey = process.env.VENLINKS_PRO_REFERENCE_ASSET_SIGNING_KEY;
+const previousKey = process.env.VENLINKS_REFERENCE_ASSET_SIGNING_KEY;
 
 afterEach(() => {
-    if (previousKey === undefined) delete process.env.VENLINKS_PRO_REFERENCE_ASSET_SIGNING_KEY;
-    else process.env.VENLINKS_PRO_REFERENCE_ASSET_SIGNING_KEY = previousKey;
+    if (previousKey === undefined) delete process.env.VENLINKS_REFERENCE_ASSET_SIGNING_KEY;
+    else process.env.VENLINKS_REFERENCE_ASSET_SIGNING_KEY = previousKey;
 });
 
 describe("reference asset access", () => {
     it("creates and verifies a bounded signed server URL", () => {
-        process.env.VENLINKS_PRO_REFERENCE_ASSET_SIGNING_KEY = "test-signing-key";
+        process.env.VENLINKS_REFERENCE_ASSET_SIGNING_KEY = "test-signing-key";
         const now = Date.UTC(2026, 6, 19);
         const url = new URL(createSignedReferenceAssetUrl("temporary/2026/07/19/images/file.png", "https://venlinks.example", now));
         const purpose = url.searchParams.get("purpose");
@@ -26,7 +26,7 @@ describe("reference asset access", () => {
     });
 
     it("only signs local reference asset paths", () => {
-        process.env.VENLINKS_PRO_REFERENCE_ASSET_SIGNING_KEY = "test-signing-key";
+        process.env.VENLINKS_REFERENCE_ASSET_SIGNING_KEY = "test-signing-key";
         expect(signReferenceAssetInputUrl("https://cdn.example/image.png", "https://venlinks.example")).toBe("https://cdn.example/image.png");
         expect(signReferenceAssetInputUrl("/api/reference-assets/permanent/2026/07/19/images/file.png", "https://venlinks.example")).toContain("purpose=provider-read");
     });

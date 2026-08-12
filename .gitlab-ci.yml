@@ -8,9 +8,9 @@ stages:
 
 variables:
   GIT_STRATEGY: fetch
-  COMPOSE_PROJECT_NAME: venlinks-pro
-  SOURCE_DIR: /home/workspace/VenLinks-PRO
-  DEPLOY_DIR: /opt/1panel/apps/venlinks-pro
+  COMPOSE_PROJECT_NAME: venlinks
+  SOURCE_DIR: /home/workspace/VenLinks
+  DEPLOY_DIR: /opt/1panel/apps/venlinks
   DOCKER_BUILDKIT: "1"
 
 deploy_dev:
@@ -19,7 +19,7 @@ deploy_dev:
   tags:
     - prod-docker
 
-  resource_group: venlinks-pro-production
+  resource_group: venlinks-production
 
   rules:
     - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH == "dev"'
@@ -58,7 +58,7 @@ deploy_dev:
       -f "$SOURCE_DIR/docker-compose.local.yml"
       --env-file "$DEPLOY_DIR/.env"
       build app
-    - docker image inspect venlinks-pro:local >/dev/null
+    - docker image inspect venlinks:local >/dev/null
     - >
       docker compose
       -p "$COMPOSE_PROJECT_NAME"

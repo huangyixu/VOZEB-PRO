@@ -49,7 +49,7 @@ export function getAntThemeConfig(dark: boolean): ThemeConfig {
 
     return {
         algorithm: dark ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
-        cssVar: { key: dark ? "venlinks-pro-dark" : "venlinks-pro-light" },
+        cssVar: { key: dark ? "venlinks-dark" : "venlinks-light" },
         token: {
             colorPrimary: color.primary,
             colorInfo: color.primary,

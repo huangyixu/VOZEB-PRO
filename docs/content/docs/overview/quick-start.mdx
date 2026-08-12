@@ -1,11 +1,11 @@
 ---
 title: 快速开始
-description: 使用 PostgreSQL、Docker Compose 或源码启动 VenLinks PRO
+description: 使用 PostgreSQL、Docker Compose 或源码启动 VenLinks
 ---
 
 # 快速开始
 
-VenLinks PRO 默认使用 PostgreSQL。推荐通过 Docker Compose 启动主应用与 PostgreSQL，再使用安装向导创建第一个管理员。
+VenLinks 默认使用 PostgreSQL。推荐通过 Docker Compose 启动主应用与 PostgreSQL，再使用安装向导创建第一个管理员。
 
 ## 最低服务器配置
 
@@ -27,8 +27,8 @@ VenLinks PRO 默认使用 PostgreSQL。推荐通过 Docker Compose 启动主应�
 ### 1. 准备配置
 
 ```bash
-git clone https://github.com/csyqlz/VenLinks-PRO.git
-cd VenLinks-PRO
+git clone https://github.com/csyqlz/VenLinks.git
+cd VenLinks
 cp .env.example .env
 ```
 
@@ -41,9 +41,9 @@ Copy-Item .env.example .env
 编辑 `.env`，至少修改：
 
 ```dotenv
-NEXT_PUBLIC_SITE_URL=https://venlinks-pro.example.com
+NEXT_PUBLIC_SITE_URL=https://venlinks.example.com
 POSTGRES_PASSWORD=请替换为强数据库密码
-VENLINKS_PRO_ENCRYPTION_KEY=请填写 openssl rand -hex 32 的输出
+VENLINKS_ENCRYPTION_KEY=请填写 openssl rand -hex 32 的输出
 ```
 
 本机体验可暂时使用 `NEXT_PUBLIC_SITE_URL=http://localhost:3000`。生产环境使用真实 HTTPS 域名。
@@ -59,9 +59,9 @@ docker compose ps
 默认启动：
 
 - `postgres:16-alpine`
-- `ghcr.io/csyqlz/venlinks-pro:latest`
-- `venlinks-pro-postgres` 数据库卷
-- `venlinks-pro-data` 媒体数据卷
+- `ghcr.io/csyqlz/venlinks:latest`
+- `venlinks-postgres` 数据库卷
+- `venlinks-data` 媒体数据卷
 
 ### 3. 初始化
 
@@ -71,7 +71,7 @@ docker compose ps
 http://服务器IP:3000/install
 ```
 
-安装向导会先只读检查 PostgreSQL。连接与加密密钥就绪后，点击“初始化表结构”创建 `venlinks_pro_` 前缀表，再创建第一个管理员账号。
+安装向导会先只读检查 PostgreSQL。连接与加密密钥就绪后，点击“初始化表结构”创建 `venlinks_` 前缀表，再创建第一个管理员账号。
 
 已使用宝塔安装 PostgreSQL 时，在 `.env` 中把 `DATABASE_URL` Host 设为 `127.0.0.1`，并仅启动应用：
 
@@ -97,19 +97,19 @@ docker compose -f docker-compose.baota.yml up -d
 要求 Node.js 22、pnpm 10+ 和 PostgreSQL 16。
 
 ```bash
-git clone https://github.com/csyqlz/VenLinks-PRO.git
-cd VenLinks-PRO
+git clone https://github.com/csyqlz/VenLinks.git
+cd VenLinks
 cp .env.example web/.env.local
 ```
 
 把 `web/.env.local` 的 `DATABASE_URL` 改为本机 PostgreSQL：
 
 ```dotenv
-VENLINKS_PRO_DATABASE_PROVIDER=postgres
-DATABASE_URL=postgres://venlinks_pro:password@localhost:5432/venlinks_pro
-VENLINKS_PRO_DATABASE_SSL=0
-VENLINKS_PRO_ENCRYPTION_KEY=64位十六进制或32字节Base64密钥
-VENLINKS_PRO_INTERNAL_ORIGIN=http://127.0.0.1:3000
+VENLINKS_DATABASE_PROVIDER=postgres
+DATABASE_URL=postgres://venlinks:password@localhost:5432/venlinks
+VENLINKS_DATABASE_SSL=0
+VENLINKS_ENCRYPTION_KEY=64位十六进制或32字节Base64密钥
+VENLINKS_INTERNAL_ORIGIN=http://127.0.0.1:3000
 NEXT_PUBLIC_SITE_URL=http://localhost:3000
 ```
 
@@ -126,8 +126,8 @@ pnpm run dev
 ## 数据位置
 
 - PostgreSQL：用户、创作会话、工作台记录、Canvas、素材库、短剧项目、设置、任务和运营元数据。
-- `VENLINKS_PRO_DATA_DIR/generation-assets`：生成日志关联的长期媒体。
-- `VENLINKS_PRO_DATA_DIR/reference-assets`：临时参考素材与长期上传/创作资产。
+- `VENLINKS_DATA_DIR/generation-assets`：生成日志关联的长期媒体。
+- `VENLINKS_DATA_DIR/reference-assets`：临时参考素材与长期上传/创作资产。
 - 文件 Provider：业务实体使用 `.data/*.json`，媒体仍位于服务器数据目录。
 
 Docker 更新不要执行 `docker compose down -v`，否则会删除数据库和媒体数据卷。

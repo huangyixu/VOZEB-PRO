@@ -35,8 +35,8 @@ export async function POST(request: Request) {
         await sendSmtpMail({
             mail: settings.mail,
             to: email,
-            subject: `VenLinks PRO ${purposeText[purpose]}验证码`,
-            text: [`你的 VenLinks PRO ${purposeText[purpose]}验证码是：${code}`, "", "验证码 10 分钟内有效，请勿转发给他人。"].join("\r\n"),
+            subject: `VenLinks ${purposeText[purpose]}验证码`,
+            text: [`你的 VenLinks ${purposeText[purpose]}验证码是：${code}`, "", "验证码 10 分钟内有效，请勿转发给他人。"].join("\r\n"),
         });
         return NextResponse.json({ ok: true });
     } catch (error) {

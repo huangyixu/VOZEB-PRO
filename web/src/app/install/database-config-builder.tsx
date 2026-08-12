@@ -10,8 +10,8 @@ export function DatabaseConfigBuilder() {
     const [mode, setMode] = useState<DeployMode>("local");
     const [host, setHost] = useState("localhost");
     const [port, setPort] = useState("5432");
-    const [database, setDatabase] = useState("venlinks_pro");
-    const [username, setUsername] = useState("venlinks_pro");
+    const [database, setDatabase] = useState("venlinks");
+    const [username, setUsername] = useState("venlinks");
     const [password, setPassword] = useState("");
     const [ssl, setSsl] = useState(false);
     const [encryptionKey, setEncryptionKey] = useState("");
@@ -26,8 +26,8 @@ export function DatabaseConfigBuilder() {
                 mode,
                 host: host.trim() || "localhost",
                 port: port.trim() || "5432",
-                database: database.trim() || "venlinks_pro",
-                username: username.trim() || "venlinks_pro",
+                database: database.trim() || "venlinks",
+                username: username.trim() || "venlinks",
                 password,
                 ssl,
                 encryptionKey,
@@ -102,8 +102,8 @@ export function DatabaseConfigBuilder() {
                 <div className="mt-4 grid gap-3 sm:grid-cols-2">
                     <Field label="Host" value={host} onChange={setHost} placeholder="localhost" />
                     <Field label="Port" value={port} onChange={setPort} placeholder="5432" inputMode="numeric" />
-                    <Field label="Database" value={database} onChange={setDatabase} placeholder="venlinks_pro" />
-                    <Field label="User" value={username} onChange={setUsername} placeholder="venlinks_pro" />
+                    <Field label="Database" value={database} onChange={setDatabase} placeholder="venlinks" />
+                    <Field label="User" value={username} onChange={setUsername} placeholder="venlinks" />
                     <label className="block space-y-1.5 sm:col-span-2">
                         <span className="text-xs font-medium text-slate-500">Password</span>
                         <input
@@ -276,7 +276,7 @@ function buildDeploymentSteps(mode: DeployMode) {
     if (mode === "baota") {
         return [
             { title: "创建数据库", text: "打开上方“建库命令”，复制后在宝塔“终端”执行。已有数据库和账号时可跳过。" },
-            { title: "保存环境变量", text: "复制“环境变量”，在 /www/wwwroot/venlinks-pro 下创建或更新 .env 文件。" },
+            { title: "保存环境变量", text: "复制“环境变量”，在 /www/wwwroot/venlinks 下创建或更新 .env 文件。" },
             { title: "重建应用与 Worker", text: "在宝塔终端进入项目目录执行下面的命令；两个服务会读取同一个维护令牌。", command: "docker compose -f docker-compose.baota.yml up -d --force-recreate" },
             { title: "返回安装页", text: "等待 10-30 秒，点击右侧“刷新检查”；看到连接可用后，再点击“初始化表结构”。" },
         ];

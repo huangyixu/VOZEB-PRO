@@ -30,7 +30,7 @@ export async function buildUserDataExport(userId: string) {
     if (!account) throw new Error("Personal data export user does not exist");
 
     return {
-        format: "venlinks-pro-personal-data",
+        format: "venlinks-personal-data",
         version: 1,
         exportedAt: new Date().toISOString(),
         account,

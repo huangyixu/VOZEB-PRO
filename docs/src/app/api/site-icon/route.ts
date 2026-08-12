@@ -4,7 +4,7 @@ export const dynamic = "force-dynamic";
 
 export function GET(request: Request) {
   const target =
-    appFaviconUrl(request.url) || new URL("/logo.svg", request.url);
+    appFaviconUrl(request.url) || new URL("/logo.png", request.url);
   return NextResponse.redirect(target, {
     status: 307,
     headers: {
@@ -16,7 +16,7 @@ export function GET(request: Request) {
 }
 
 function appFaviconUrl(requestUrl: string) {
-  const value = process.env.VENLINKS_PRO_APP_URL?.trim();
+  const value = process.env.VENLINKS_APP_URL?.trim();
   if (!value) return null;
   try {
     const appUrl = new URL(value);

@@ -1,6 +1,6 @@
-export const APP_STORAGE_NAME = "venlinks-pro";
-export const APP_EXPORT_ID = "venlinks-pro-canvas";
-const APP_STORAGE_PREFIX = "venlinks-pro";
+export const APP_STORAGE_NAME = "venlinks";
+export const APP_EXPORT_ID = "venlinks-canvas";
+const APP_STORAGE_PREFIX = "venlinks";
 
 export function appStorageKey(name: string) {
     return `${APP_STORAGE_PREFIX}:${name}`;

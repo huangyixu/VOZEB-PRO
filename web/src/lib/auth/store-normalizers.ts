@@ -406,8 +406,8 @@ export function normalizeGenerationConcurrency(settings: Partial<GenerationConcu
 }
 
 export function normalizeSiteSettings(settings: Partial<SiteSettings> | undefined): SiteSettings {
-    const title = normalizeText(settings?.title, DEFAULT_SITE_SETTINGS.title, 40);
-    const seoTitle = normalizeText(settings?.seoTitle, title, 72);
+    const title = normalizeLegacySiteTitle(settings?.title, DEFAULT_SITE_SETTINGS.title, 40);
+    const seoTitle = normalizeLegacySiteTitle(settings?.seoTitle, title, 72);
     return {
         title,
         logoUrl: normalizeLogoUrl(settings?.logoUrl),
@@ -458,7 +458,7 @@ export function normalizeSiteFriendLinks(settings: unknown): SiteFriendLink[] {
             const value = link as Partial<SiteFriendLink>;
             return {
                 id: normalizeText(value.id, `friend-${index + 1}`, 80),
-                label: normalizeText(value.url?.replace(/\/$/, "") === "https://www.venlinks.com" ? "VenLinks PRO" : value.label, "友情链接", 32),
+                label: normalizeText(value.url?.replace(/\/$/, "") === "https://www.venlinks.com" ? "VenLinks" : value.label, "友情链接", 32),
                 url: normalizeLinkUrl(value.url, ""),
                 enabled: value.enabled !== false,
             };
@@ -507,7 +507,7 @@ export function normalizeMailSettings(settings: Partial<MailSettings> | undefine
         username: normalizeText(settings?.username, DEFAULT_MAIL_SETTINGS.username, 160),
         password: normalizeSecretText(settings?.password, DEFAULT_MAIL_SETTINGS.password, 512),
         fromEmail: normalizeText(settings?.fromEmail, DEFAULT_MAIL_SETTINGS.fromEmail, 160),
-        fromName: normalizeText(settings?.fromName, DEFAULT_MAIL_SETTINGS.fromName, 60),
+        fromName: normalizeLegacySiteTitle(settings?.fromName, DEFAULT_MAIL_SETTINGS.fromName, 60),
     };
 }
 
@@ -523,9 +523,9 @@ export function normalizeText(value: unknown, fallback: string, maxLength: numbe
 }
 
 export function repairKnownMojibakeText(value: string) {
-    if (value.includes("VenLinks PRO") && value.includes("AI") && !value.includes("绘图") && value.includes(",")) return DEFAULT_SITE_SETTINGS.seoKeywords;
-    if (value.includes("VenLinks PRO") && value.includes("AI") && !value.includes("工作台")) return DEFAULT_SITE_SETTINGS.seoDescription;
-    if (value.includes("2026 VenLinks PRO") && !value.startsWith("©")) return "© 2026 VenLinks PRO. All rights reserved.";
+    if (value.includes("VenLinks") && value.includes("AI") && !value.includes("绘图") && value.includes(",")) return DEFAULT_SITE_SETTINGS.seoKeywords;
+    if (value.includes("VenLinks") && value.includes("AI") && !value.includes("工作台")) return DEFAULT_SITE_SETTINGS.seoDescription;
+    if (value.includes("2026 VenLinks") && !value.startsWith("©")) return "© 2026 VenLinks. All rights reserved.";
     if (value.startsWith("QQ ") && !value.includes("邮箱")) return "QQ 邮箱";
     return repairUtf8MojibakeText(value);
 }
@@ -554,11 +554,18 @@ export function textQualityScore(value: string) {
 }
 
 export function normalizeLogoUrl(value: unknown) {
+    if (value === "/logo.svg") return DEFAULT_SITE_SETTINGS.logoUrl;
     return normalizeSiteImageUrl(value, DEFAULT_SITE_SETTINGS.logoUrl);
 }
 
 export function normalizeSiteIconUrl(value: unknown) {
+    if (value === "/icon.svg") return DEFAULT_SITE_SETTINGS.iconUrl;
     return normalizeSiteImageUrl(value, DEFAULT_SITE_SETTINGS.iconUrl);
+}
+
+function normalizeLegacySiteTitle(value: unknown, fallback: string, maxLength: number) {
+    const normalized = normalizeText(value, fallback, maxLength);
+    return normalized.toLowerCase() === ["venlinks", "pro"].join(" ") ? "VenLinks" : normalized;
 }
 
 function normalizeSiteImageUrl(value: unknown, fallback: string) {

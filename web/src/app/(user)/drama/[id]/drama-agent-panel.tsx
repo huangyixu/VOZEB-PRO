@@ -56,7 +56,7 @@ export function DramaAgentPanel({ project, episode, onConversationChange }: { pr
 
 function DramaAgentContent({ project, episode, onConversationChange }: { project: DramaProject; episode: DramaEpisode; onConversationChange: (conversationId: string) => void }) {
     const { message } = App.useApp();
-    const site = usePublicSessionStore((state) => state.payload?.settings?.site) || { logoUrl: "/logo.svg" };
+    const site = usePublicSessionStore((state) => state.payload?.settings?.site) || { logoUrl: "/logo.png" };
     const { skills, skillsLoading, models } = useCreativeAgentOptions("drama");
     const [messages, setMessages] = useState<CreativeMessage[]>([]);
     const [assets, setAssets] = useState<CreativeAsset[]>([]);

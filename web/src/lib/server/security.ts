@@ -35,10 +35,10 @@ const publicMediaIpRateLimit: RateLimitConfig = { maxRequests: 240, windowMs: 60
 const blockedHostnames = ["metadata.google.internal", "metadata.goog", "metadata.azure.com", "instance-data"];
 
 const globalSecurityStore = globalThis as typeof globalThis & {
-    __venLinksProRateLimits?: Map<string, { count: number; resetAt: number }>;
+    __venLinksRateLimits?: Map<string, { count: number; resetAt: number }>;
 };
 
-const rateLimits = (globalSecurityStore.__venLinksProRateLimits ??= new Map<string, { count: number; resetAt: number }>());
+const rateLimits = (globalSecurityStore.__venLinksRateLimits ??= new Map<string, { count: number; resetAt: number }>());
 
 export function getClientIp(request: Request) {
     const trustedProxyHops = readTrustedProxyHops();
@@ -161,9 +161,9 @@ export async function isSafeOutboundUrl(value: string, options?: { allowCredenti
 }
 
 function privateUpstreamHostAllowed(hostname: string) {
-    if (process.env.VENLINKS_PRO_ALLOW_PRIVATE_UPSTREAMS !== "1") return false;
+    if (process.env.VENLINKS_ALLOW_PRIVATE_UPSTREAMS !== "1") return false;
     const host = hostname.replace(/^\[|\]$/g, "").toLowerCase();
-    return (process.env.VENLINKS_PRO_PRIVATE_UPSTREAM_HOSTS || "")
+    return (process.env.VENLINKS_PRIVATE_UPSTREAM_HOSTS || "")
         .split(",")
         .map((value) =>
             value
@@ -226,6 +226,6 @@ function cleanupRateLimits(now: number) {
 }
 
 function readTrustedProxyHops() {
-    const value = Number(process.env.VENLINKS_PRO_TRUSTED_PROXY_HOPS || 0);
+    const value = Number(process.env.VENLINKS_TRUSTED_PROXY_HOPS || 0);
     return Number.isInteger(value) && value > 0 ? Math.min(value, 10) : 0;
 }

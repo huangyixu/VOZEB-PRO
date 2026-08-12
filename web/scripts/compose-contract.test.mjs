@@ -22,14 +22,14 @@ describe("Docker Compose contracts", () => {
 
     it("rejects a Worker that can bypass the application database boundary", () => {
         const profile = composeProfiles.find(({ file }) => file === "docker-compose.external-db.yml");
-        const source = readFileSync(path.join(repoRoot, profile.file), "utf8").replace("      VENLINKS_PRO_WORKER_API_ORIGIN: http://app:3000", "      VENLINKS_PRO_WORKER_API_ORIGIN: http://app:3000\n      DATABASE_URL: postgres://leaked");
+        const source = readFileSync(path.join(repoRoot, profile.file), "utf8").replace("      VENLINKS_WORKER_API_ORIGIN: http://app:3000", "      VENLINKS_WORKER_API_ORIGIN: http://app:3000\n      DATABASE_URL: postgres://leaked");
 
         expect(() => validateComposeContract(source, profile)).toThrow("generation-worker 不应直接持有数据库连接串");
     });
 
     it("rejects Baota-only host networking in the public default topology", () => {
         const profile = composeProfiles.find(({ file }) => file === "docker-compose.yml");
-        const source = readFileSync(path.join(repoRoot, profile.file), "utf8").replace("    image: ${VENLINKS_PRO_IMAGE", "    network_mode: host\n    image: ${VENLINKS_PRO_IMAGE");
+        const source = readFileSync(path.join(repoRoot, profile.file), "utf8").replace("    image: ${VENLINKS_IMAGE", "    network_mode: host\n    image: ${VENLINKS_IMAGE");
 
         expect(() => validateComposeContract(source, profile)).toThrow("宝塔专用 host 网络不得泄漏到其他拓扑");
     });

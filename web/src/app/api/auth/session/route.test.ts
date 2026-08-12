@@ -9,7 +9,7 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock("@/lib/auth/store", () => ({
-    DEFAULT_SITE_SETTINGS: { title: "VenLinks PRO", logoUrl: "/logo.svg" },
+    DEFAULT_SITE_SETTINGS: { title: "VenLinks", logoUrl: "/logo.png" },
     getAuthSettings: mocks.getAuthSettings,
 }));
 
@@ -40,7 +40,7 @@ describe("public session route before installation", () => {
 
         await expect(response.json()).resolves.toMatchObject({
             user: null,
-            settings: { site: { title: "VenLinks PRO" } },
+            settings: { site: { title: "VenLinks" } },
             install: { database: { healthy: true, schemaReady: false } },
         });
         expect(mocks.getCurrentUser).toHaveBeenCalledTimes(1);

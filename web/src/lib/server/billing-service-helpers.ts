@@ -173,7 +173,7 @@ export function deterministicPaymentId(provider: string, providerTradeId: string
 }
 
 export function orderExpiresMinutes() {
-    return normalizeInteger(process.env.VENLINKS_PRO_BILLING_ORDER_EXPIRES_MINUTES, 1, 24 * 60, DEFAULT_ORDER_EXPIRES_MINUTES);
+    return normalizeInteger(process.env.VENLINKS_BILLING_ORDER_EXPIRES_MINUTES, 1, 24 * 60, DEFAULT_ORDER_EXPIRES_MINUTES);
 }
 
 export function normalizeId(value: unknown) {

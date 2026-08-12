@@ -2,12 +2,12 @@ import { getDatabaseProvider, getPostgresConnectionString, subscribePostgresNoti
 
 type RunEventListener = () => void;
 
-const CREATIVE_RUN_NOTIFY_CHANNEL = "venlinks_pro_run_events";
+const CREATIVE_RUN_NOTIFY_CHANNEL = "venlinks_run_events";
 const globalSignals = globalThis as typeof globalThis & {
-    __venLinksProCreativeRunSignals?: Map<string, Set<RunEventListener>>;
-    __venLinksProCreativeRunSignalBridge?: Promise<unknown>;
+    __venLinksCreativeRunSignals?: Map<string, Set<RunEventListener>>;
+    __venLinksCreativeRunSignalBridge?: Promise<unknown>;
 };
-const listeners = (globalSignals.__venLinksProCreativeRunSignals ??= new Map<string, Set<RunEventListener>>());
+const listeners = (globalSignals.__venLinksCreativeRunSignals ??= new Map<string, Set<RunEventListener>>());
 
 export function notifyCreativeRunEvent(runId: string) {
     for (const listener of [...(listeners.get(runId) || [])]) listener();
@@ -39,12 +39,12 @@ export function waitForCreativeRunEvent(runId: string, timeoutMs: number, signal
 }
 
 function ensurePostgresEventBridge() {
-    if (getDatabaseProvider() !== "postgres" || !getPostgresConnectionString() || globalSignals.__venLinksProCreativeRunSignalBridge) return;
-    globalSignals.__venLinksProCreativeRunSignalBridge = subscribePostgresNotification(CREATIVE_RUN_NOTIFY_CHANNEL, (runId) => {
+    if (getDatabaseProvider() !== "postgres" || !getPostgresConnectionString() || globalSignals.__venLinksCreativeRunSignalBridge) return;
+    globalSignals.__venLinksCreativeRunSignalBridge = subscribePostgresNotification(CREATIVE_RUN_NOTIFY_CHANNEL, (runId) => {
         const id = runId.trim();
         if (id && id.length <= 160) notifyCreativeRunEvent(id);
     }).catch((error) => {
-        globalSignals.__venLinksProCreativeRunSignalBridge = undefined;
+        globalSignals.__venLinksCreativeRunSignalBridge = undefined;
         console.warn("Creative run PostgreSQL notification bridge unavailable", { error: error instanceof Error ? error.message : String(error) });
     });
 }

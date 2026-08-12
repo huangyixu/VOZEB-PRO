@@ -33,8 +33,8 @@ const config: PaymentRuntimeConfig = {
     saved: { providers: {} },
     providers: {},
     valuesByEnvName: {
-        VENLINKS_PRO_STRIPE_SECRET_KEY: "sk_test_secret",
-        VENLINKS_PRO_STRIPE_API_BASE: "https://stripe.test",
+        VENLINKS_STRIPE_SECRET_KEY: "sk_test_secret",
+        VENLINKS_STRIPE_API_BASE: "https://stripe.test",
     },
 };
 
@@ -54,7 +54,7 @@ describe("payment checkout providers", () => {
         expect(fetchMock).toHaveBeenCalledWith(
             "https://stripe.test/v1/checkout/sessions",
             expect.objectContaining({
-                headers: expect.objectContaining({ "Idempotency-Key": "venlinks-pro-checkout-order-one" }),
+                headers: expect.objectContaining({ "Idempotency-Key": "venlinks-checkout-order-one" }),
             }),
         );
     });
@@ -164,11 +164,11 @@ function alipayConfig(mode = "official"): PaymentRuntimeConfig {
         saved: { providers: {} },
         providers: { alipay: { enabled: true, saved: true } },
         valuesByEnvName: {
-            VENLINKS_PRO_ALIPAY_MODE: mode,
-            VENLINKS_PRO_ALIPAY_APP_ID: "2026000000000000",
-            VENLINKS_PRO_ALIPAY_PRIVATE_KEY: alipayPrivateKey,
-            VENLINKS_PRO_ALIPAY_PUBLIC_KEY: alipayPublicKey,
-            VENLINKS_PRO_ALIPAY_GATEWAY_URL: "https://alipay.test/gateway.do",
+            VENLINKS_ALIPAY_MODE: mode,
+            VENLINKS_ALIPAY_APP_ID: "2026000000000000",
+            VENLINKS_ALIPAY_PRIVATE_KEY: alipayPrivateKey,
+            VENLINKS_ALIPAY_PUBLIC_KEY: alipayPublicKey,
+            VENLINKS_ALIPAY_GATEWAY_URL: "https://alipay.test/gateway.do",
         },
     };
 }

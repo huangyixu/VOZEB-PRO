@@ -19,10 +19,10 @@ export function validateRenderBlueprint({ repoRoot, source, dockerfile: dockerfi
     const services = Array.isArray(blueprint?.services) ? blueprint.services : [];
     const databases = Array.isArray(blueprint?.databases) ? blueprint.databases : [];
     const environmentGroups = Array.isArray(blueprint?.envVarGroups) ? blueprint.envVarGroups : [];
-    const web = services.find((service) => service?.name === "venlinks-pro");
-    const worker = services.find((service) => service?.name === "venlinks-pro-generation-worker");
-    const database = databases.find((entry) => entry?.name === "venlinks-pro-postgres");
-    const runtimeGroup = environmentGroups.find((group) => group?.name === "venlinks-pro-runtime");
+    const web = services.find((service) => service?.name === "venlinks");
+    const worker = services.find((service) => service?.name === "venlinks-generation-worker");
+    const database = databases.find((entry) => entry?.name === "venlinks-postgres");
+    const runtimeGroup = environmentGroups.find((group) => group?.name === "venlinks-runtime");
     const webEnvironment = environmentMap(web?.envVars);
     const workerEnvironment = environmentMap(worker?.envVars);
     const dockerfile = dockerfileSource ?? readFileSync(path.join(repoRoot, "Dockerfile"), "utf8");
@@ -42,14 +42,14 @@ export function validateRenderBlueprint({ repoRoot, source, dockerfile: dockerfi
     ensure(dockerfile.includes("test -n \"$(find /app/sharp-runtime/node_modules/.pnpm -mindepth 1 -maxdepth 1 -type d -name '@img+sharp-libvips-linux-*' -print -quit)\""), "生产镜像缺少 Sharp libvips 依赖存在性检查");
     ensure(dockerfile.includes("COPY --from=web-build /app/sharp-runtime/node_modules/.pnpm /app/web/node_modules/.pnpm"), "生产镜像缺少 Sharp 原生依赖");
     ensure(dockerfile.includes("RUN cd /app/web && node -e \"require('sharp')\""), "生产镜像缺少 Sharp 运行时检查");
-    ensure(hasGroup(web?.envVars, "venlinks-pro-runtime") && hasGroup(worker?.envVars, "venlinks-pro-runtime"), "Web 与 Worker 必须引用同一运行时环境组");
-    ensure(environmentMap(runtimeGroup?.envVars).VENLINKS_PRO_MAINTENANCE_TOKEN?.generateValue === true, "运行时环境组必须生成共享维护令牌");
-    ensure(webEnvironment.VENLINKS_PRO_DATA_DIR?.value === "/app/web/.data", "Web 数据目录必须位于持久盘");
-    ensure(webEnvironment.DATABASE_URL?.fromDatabase?.name === "venlinks-pro-postgres", "Web 必须引用 Blueprint PostgreSQL");
-    ensure(webEnvironment.VENLINKS_PRO_ENCRYPTION_KEY?.generateValue === true, "Web 必须生成稳定加密密钥");
-    ensure(workerEnvironment.VENLINKS_PRO_WORKER_API_ORIGIN?.fromService?.name === "venlinks-pro" && workerEnvironment.VENLINKS_PRO_WORKER_API_ORIGIN?.fromService?.property === "hostport", "Worker 必须通过 Render 私网调用 Web");
-    ensure(!workerEnvironment.DATABASE_URL && !workerEnvironment.VENLINKS_PRO_DATABASE_PROVIDER, "Render Worker 不应直接持有数据库配置");
-    ensure(database?.plan === "basic-256mb" && database?.databaseName === "venlinks_pro" && database?.user === "venlinks_pro", "Render PostgreSQL 必须使用持久生产实例和稳定名称");
+    ensure(hasGroup(web?.envVars, "venlinks-runtime") && hasGroup(worker?.envVars, "venlinks-runtime"), "Web 与 Worker 必须引用同一运行时环境组");
+    ensure(environmentMap(runtimeGroup?.envVars).VENLINKS_MAINTENANCE_TOKEN?.generateValue === true, "运行时环境组必须生成共享维护令牌");
+    ensure(webEnvironment.VENLINKS_DATA_DIR?.value === "/app/web/.data", "Web 数据目录必须位于持久盘");
+    ensure(webEnvironment.DATABASE_URL?.fromDatabase?.name === "venlinks-postgres", "Web 必须引用 Blueprint PostgreSQL");
+    ensure(webEnvironment.VENLINKS_ENCRYPTION_KEY?.generateValue === true, "Web 必须生成稳定加密密钥");
+    ensure(workerEnvironment.VENLINKS_WORKER_API_ORIGIN?.fromService?.name === "venlinks" && workerEnvironment.VENLINKS_WORKER_API_ORIGIN?.fromService?.property === "hostport", "Worker 必须通过 Render 私网调用 Web");
+    ensure(!workerEnvironment.DATABASE_URL && !workerEnvironment.VENLINKS_DATABASE_PROVIDER, "Render Worker 不应直接持有数据库配置");
+    ensure(database?.plan === "basic-256mb" && database?.databaseName === "venlinks" && database?.user === "venlinks", "Render PostgreSQL 必须使用持久生产实例和稳定名称");
 
     if (violations.length > 0) throw new Error(`Render Blueprint 契约失败：\n- ${violations.join("\n- ")}`);
     return { services: services.map(({ name }) => name), database: database.name, environmentGroup: runtimeGroup.name };

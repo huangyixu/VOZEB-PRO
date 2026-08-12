@@ -49,7 +49,7 @@ function sign(token: string, purpose: string, expires: number, secret: string) {
 }
 
 function signingSecret() {
-    return process.env.VENLINKS_PRO_REFERENCE_ASSET_SIGNING_KEY?.trim() || process.env.VENLINKS_PRO_ENCRYPTION_KEY?.trim() || "";
+    return process.env.VENLINKS_REFERENCE_ASSET_SIGNING_KEY?.trim() || process.env.VENLINKS_ENCRYPTION_KEY?.trim() || "";
 }
 
 function normalizeOrigin(value: string) {

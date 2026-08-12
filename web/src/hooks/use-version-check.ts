@@ -5,8 +5,8 @@ import { App } from "antd";
 import { APP_VERSION } from "@/constant/env";
 import { parseChangelog, type ReleaseInfo } from "@/lib/release";
 
-const latestVersionUrl = "https://raw.githubusercontent.com/csyqlz/VenLinks-PRO/main/VERSION";
-const latestChangelogUrl = "https://raw.githubusercontent.com/csyqlz/VenLinks-PRO/main/CHANGELOG.md";
+const latestVersionUrl = "https://raw.githubusercontent.com/csyqlz/VenLinks/main/VERSION";
+const latestChangelogUrl = "https://raw.githubusercontent.com/csyqlz/VenLinks/main/CHANGELOG.md";
 const currentReleaseMajor = toVersionParts(APP_VERSION)?.[0] ?? 0;
 
 function readLocalReleases(): ReleaseInfo[] {

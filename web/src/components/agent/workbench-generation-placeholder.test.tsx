@@ -29,7 +29,7 @@ describe("workbench generation placeholders", () => {
         expect(placeholder.match(/--cube-base:/g)).toHaveLength(GENERATION_PLACEHOLDER_TILE_COUNT);
         expect(placeholder).toContain("#d9f4ee");
         expect(placeholder).toContain("#5b9cf5");
-        expect(placeholder).not.toContain("/logo.svg");
+        expect(placeholder).not.toContain("/logo.png");
         expect(stylesheet).toContain("grid-template-columns: repeat(12, minmax(0, 1fr))");
         expect(stylesheet).toContain("grid-template-rows: repeat(8, minmax(0, 1fr))");
         expect(stylesheet).toContain("@keyframes cube-rise");

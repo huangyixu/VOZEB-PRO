@@ -9,12 +9,12 @@ describe("structured data", () => {
                 name: "无限进化",
                 description: "视觉创作平台",
                 url: "https://example.com/",
-                logoUrl: "https://example.com/logo.svg",
+                logoUrl: "https://example.com/logo.png",
             }),
         ).toMatchObject({
             "@type": "WebSite",
             "@id": "https://example.com/#website",
-            publisher: { "@type": "Organization", logo: { url: "https://example.com/logo.svg" } },
+            publisher: { "@type": "Organization", logo: { url: "https://example.com/logo.png" } },
         });
     });
 

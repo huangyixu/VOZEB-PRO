@@ -18,12 +18,12 @@ describe("generation task webhook", () => {
     beforeEach(() => {
         vi.clearAllMocks();
         mocks.provider = "postgres";
-        vi.stubEnv("VENLINKS_PRO_GENERATION_WEBHOOK_SECRET", "0123456789abcdef0123456789abcdef");
+        vi.stubEnv("VENLINKS_GENERATION_WEBHOOK_SECRET", "0123456789abcdef0123456789abcdef");
     });
 
     it("accepts only an exact HMAC-SHA256 signature", () => {
         const body = JSON.stringify({ id: "event-one" });
-        const signature = createHmac("sha256", process.env.VENLINKS_PRO_GENERATION_WEBHOOK_SECRET!).update(body).digest("hex");
+        const signature = createHmac("sha256", process.env.VENLINKS_GENERATION_WEBHOOK_SECRET!).update(body).digest("hex");
 
         expect(verifyGenerationWebhookSignature(body, `sha256=${signature}`)).toBe(true);
         expect(verifyGenerationWebhookSignature(`${body} `, `sha256=${signature}`)).toBe(false);

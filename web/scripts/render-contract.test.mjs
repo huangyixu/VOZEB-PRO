@@ -14,9 +14,9 @@ const source = readFileSync(path.join(repoRoot, "render.yaml"), "utf8");
 describe("Render Blueprint contract", () => {
     it("keeps the Web, Worker, database, shared secret, health check and disk topology aligned", () => {
         expect(validateRenderBlueprint({ repoRoot })).toEqual({
-            services: ["venlinks-pro", "venlinks-pro-generation-worker"],
-            database: "venlinks-pro-postgres",
-            environmentGroup: "venlinks-pro-runtime",
+            services: ["venlinks", "venlinks-generation-worker"],
+            database: "venlinks-postgres",
+            environmentGroup: "venlinks-runtime",
         });
     });
 

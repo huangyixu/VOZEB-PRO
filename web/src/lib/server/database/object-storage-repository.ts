@@ -66,7 +66,7 @@ function defaultSettings(): StoredObjectStorageSettings {
         endpoint: "",
         region: "us-east-1",
         bucket: "",
-        prefix: "venlinks-pro",
+        prefix: "venlinks",
         accessKeyIdCiphertext: "",
         secretAccessKeyCiphertext: "",
         forcePathStyle: false,

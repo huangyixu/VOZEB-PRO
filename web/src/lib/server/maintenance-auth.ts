@@ -1,7 +1,7 @@
 import { createHash, createHmac, timingSafeEqual } from "node:crypto";
 
 const MIN_TOKEN_LENGTH = 32;
-const WORKER_USER_HEADER = "x-venlinks-pro-worker-user-id";
+const WORKER_USER_HEADER = "x-venlinks-worker-user-id";
 const WORKER_CONTEXT_PREFIX = "venlinks-worker-v1";
 
 export function isMaintenanceTokenConfigured() {
@@ -63,7 +63,7 @@ export function requestRuntimeCredential(request: Request, userId: string) {
 }
 
 function maintenanceToken() {
-    return process.env.VENLINKS_PRO_MAINTENANCE_TOKEN?.trim() || "";
+    return process.env.VENLINKS_MAINTENANCE_TOKEN?.trim() || "";
 }
 
 function digest(value: string) {

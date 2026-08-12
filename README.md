@@ -1,13 +1,13 @@
 <p align="center">
-  <img src="web/public/logo.svg?v=0.0.3" width="108" alt="VenLinks PRO logo">
+  <img src="web/public/logo.png?v=0.0.3" width="108" alt="VenLinks logo">
 </p>
 
-<h1 align="center">VenLinks PRO</h1>
+<h1 align="center">VenLinks</h1>
 
 <p align="center">面向 Agent、图片、视频、Canvas 与短剧生产的开源 AI 创作工作台</p>
 
 <p align="center">
-  <a href="https://github.com/csyqlz/VenLinks-PRO"><img src="https://img.shields.io/github/stars/csyqlz/VenLinks-PRO?style=flat-square&logo=github" alt="GitHub stars"></a>
+  <a href="https://github.com/csyqlz/VenLinks"><img src="https://img.shields.io/github/stars/csyqlz/VenLinks?style=flat-square&logo=github" alt="GitHub stars"></a>
   <a href="VERSION"><img src="https://img.shields.io/badge/version-v0.0.3-2563eb?style=flat-square" alt="Version"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-AGPL--3.0-f97316?style=flat-square" alt="License"></a>
   <a href="https://nextjs.org/"><img src="https://img.shields.io/badge/Next.js-16.2-000000?style=flat-square&logo=nextdotjs" alt="Next.js"></a>
@@ -25,9 +25,9 @@
   <a href="CHANGELOG.md">更新记录</a>
 </p>
 
-![VenLinks PRO 首页](docs/public/screenshots/pages/01-home.webp)
+![VenLinks 首页](docs/public/screenshots/pages/01-home.webp)
 
-VenLinks PRO 把统一创作 Agent、图片与视频工作台、画布、短剧生产、素材库和商业运营后台放在同一套 Next.js 全栈应用中。PostgreSQL 保存账号与业务数据；媒体可写入服务器本地目录或 S3 兼容对象存储；模型、支付和存储密钥只在服务端使用。
+VenLinks 把统一创作 Agent、图片与视频工作台、画布、短剧生产、素材库和商业运营后台放在同一套 Next.js 全栈应用中。PostgreSQL 保存账号与业务数据；媒体可写入服务器本地目录或 S3 兼容对象存储；模型、支付和存储密钥只在服务端使用。
 
 ## 核心功能
 
@@ -391,7 +391,7 @@ flowchart LR
 
 ## 最低服务器配置
 
-VenLinks PRO 调用外部 AI 模型，不要求 GPU。服务器主要承担 Web、PostgreSQL、媒体下载/存储和可选 FFmpeg 转码。
+VenLinks 调用外部 AI 模型，不要求 GPU。服务器主要承担 Web、PostgreSQL、媒体下载/存储和可选 FFmpeg 转码。
 
 | 使用方式                   | CPU      | 内存           | 磁盘      | 说明                                                                |
 | -------------------------- | -------- | -------------- | --------- | ------------------------------------------------------------------- |
@@ -411,18 +411,18 @@ VenLinks PRO 调用外部 AI 模型，不要求 GPU。服务器主要承担 Web�
 环境要求：可运行 Docker Compose 的 Linux 服务器、HTTPS 域名，以及按业务需要准备的模型渠道。
 
 ```bash
-git clone https://github.com/csyqlz/VenLinks-PRO.git
-cd VenLinks-PRO
+git clone https://github.com/csyqlz/VenLinks.git
+cd VenLinks
 cp .env.example .env
 ```
 
 至少修改：
 
 ```dotenv
-NEXT_PUBLIC_SITE_URL=https://venlinks-pro.example.com
+NEXT_PUBLIC_SITE_URL=https://venlinks.example.com
 POSTGRES_PASSWORD=replace-with-a-strong-password
-VENLINKS_PRO_ENCRYPTION_KEY=replace-with-openssl-rand-hex-32
-VENLINKS_PRO_MAINTENANCE_TOKEN=replace-with-another-openssl-rand-hex-32
+VENLINKS_ENCRYPTION_KEY=replace-with-openssl-rand-hex-32
+VENLINKS_MAINTENANCE_TOKEN=replace-with-another-openssl-rand-hex-32
 ```
 
 分别生成加密密钥和维护令牌，再写入 `.env` 并启动：
@@ -435,7 +435,7 @@ docker compose up -d
 docker compose ps
 ```
 
-`VENLINKS_PRO_MAINTENANCE_TOKEN` 是服务器部署密钥，不在管理后台填写。安装页会自动生成并放入可复制的环境变量；选择 Docker、宝塔或云数据库时，可复制的 Compose 模板同时包含 App 与 `generation-worker`，两个服务使用同一个令牌并一起启动。单独部署 Worker 时也必须注入完全相同的值。完整变量说明见[配置说明](docs/content/docs/overview/configuration.mdx)。
+`VENLINKS_MAINTENANCE_TOKEN` 是服务器部署密钥，不在管理后台填写。安装页会自动生成并放入可复制的环境变量；选择 Docker、宝塔或云数据库时，可复制的 Compose 模板同时包含 App 与 `generation-worker`，两个服务使用同一个令牌并一起启动。单独部署 Worker 时也必须注入完全相同的值。完整变量说明见[配置说明](docs/content/docs/overview/configuration.mdx)。
 
 打开 `https://你的域名/install`，依次检查数据库、初始化表结构并创建首个管理员。
 
@@ -447,7 +447,7 @@ docker compose -f docker-compose.local.yml up -d --no-build
 docker compose -f docker-compose.local.yml ps
 ```
 
-镜像地址都可在 `.env` 中用 `VENLINKS_PRO_NODE_IMAGE`、`VENLINKS_PRO_POSTGRES_IMAGE`、`VENLINKS_PRO_NPM_REGISTRY`、`VENLINKS_PRO_DEBIAN_MIRROR` 和 `VENLINKS_PRO_DEBIAN_SECURITY_MIRROR` 覆盖。已有部署必须保留原 `.env` 中的数据库密码、加密密钥和维护令牌。
+镜像地址都可在 `.env` 中用 `VENLINKS_NODE_IMAGE`、`VENLINKS_POSTGRES_IMAGE`、`VENLINKS_NPM_REGISTRY`、`VENLINKS_DEBIAN_MIRROR` 和 `VENLINKS_DEBIAN_SECURITY_MIRROR` 覆盖。已有部署必须保留原 `.env` 中的数据库密码、加密密钥和维护令牌。
 
 以后拉取新代码并更新源码构建部署时执行：
 
@@ -460,7 +460,7 @@ docker compose -f docker-compose.local.yml ps
 
 Docker 只会复用内容未变化的构建层。应用源码变化后，`COPY` 源码及其后的 Next.js 生产构建层会自动失效并重新执行，不会继续使用旧应用代码；依赖文件未变化时仍可复用耗时的依赖安装层。构建完成后必须执行上面的 `up -d --no-build`，让运行中的容器切换到新镜像。只有怀疑缓存异常时才使用 `docker compose -f docker-compose.local.yml build --no-cache app`。
 
-Docker 默认把应用发布到宿主机 `3002` 端口；需要其他端口时修改 `.env` 中的 `VENLINKS_PRO_HOST_PORT`。容器内部、健康检查和生成 Worker 始终使用 `3000`，不需要同步修改。
+Docker 默认把应用发布到宿主机 `3002` 端口；需要其他端口时修改 `.env` 中的 `VENLINKS_HOST_PORT`。容器内部、健康检查和生成 Worker 始终使用 `3000`，不需要同步修改。
 
 ### 宝塔 PostgreSQL
 
@@ -473,10 +473,10 @@ docker compose -f docker-compose.baota.yml up -d
 `.env` 中的数据库连接使用宿主机回环地址：
 
 ```dotenv
-VENLINKS_PRO_DATABASE_PROVIDER=postgres
-DATABASE_URL=postgres://user:password@127.0.0.1:5432/venlinks_pro
-VENLINKS_PRO_DATABASE_SSL=0
-VENLINKS_PRO_TRUSTED_PROXY_HOPS=1
+VENLINKS_DATABASE_PROVIDER=postgres
+DATABASE_URL=postgres://user:password@127.0.0.1:5432/venlinks
+VENLINKS_DATABASE_SSL=0
+VENLINKS_TRUSTED_PROXY_HOPS=1
 ```
 
 宝塔 Nginx 反向代理到应用后，应转发 `Host`、`X-Forwarded-Host`、`X-Forwarded-Proto` 和 `X-Forwarded-For`。详细步骤见[生产上线基线](docs/content/docs/overview/production-readiness.mdx)和[Docker 部署](docs/content/docs/overview/docker.mdx)。
@@ -500,7 +500,7 @@ pnpm install --frozen-lockfile
 pnpm run dev
 ```
 
-`http://localhost:3000` 必须显示 VenLinks PRO 主应用；如果看到“VenLinks PRO 文档中心”，说明启动的是 `docs/` 子项目或旧版文档脚本，请停止该进程并从 `web/` 启动主应用。独立文档站只使用 `http://localhost:3001`。
+`http://localhost:3000` 必须显示 VenLinks 主应用；如果看到“VenLinks 文档中心”，说明启动的是 `docs/` 子项目或旧版文档脚本，请停止该进程并从 `web/` 启动主应用。独立文档站只使用 `http://localhost:3001`。
 
 ## 首次配置顺序
 
@@ -557,7 +557,7 @@ pnpm run dev
 ## 数据与安全
 
 - PostgreSQL 保存用户、会话、设置、创作会话、Canvas、素材、短剧、生成任务、积分和订单。
-- 外部存储关闭时新媒体只写 `VENLINKS_PRO_DATA_DIR`；开启时新媒体只写 S3 兼容对象存储。历史媒体按登记 Provider 读取。
+- 外部存储关闭时新媒体只写 `VENLINKS_DATA_DIR`；开启时新媒体只写 S3 兼容对象存储。历史媒体按登记 Provider 读取。
 - 业务记录保存稳定站内 `storageKey`，不保存 base64、对象 Key 或临时签名 URL。
 - `.env`、API Key、支付密钥、数据库、媒体文件、备份、日志和构建产物不得提交 Git。
 - 生产备份必须同时覆盖 PostgreSQL 和本地媒体或对象存储，不能只备份其中一部分。

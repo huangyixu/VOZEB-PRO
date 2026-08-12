@@ -1,8 +1,8 @@
-# VenLinks PRO Security Policy
+# VenLinks Security Policy
 
 ## Supported Versions
 
-VenLinks PRO is in active development. Security fixes are accepted for the `main`
+VenLinks is in active development. Security fixes are accepted for the `main`
 branch and the latest tagged release. Older versions may be handled on a
 best-effort basis when the issue can be reproduced safely.
 
@@ -16,7 +16,7 @@ Preferred reporting channels:
 1. Use GitHub private vulnerability reporting or a GitHub Security Advisory for
    this repository, if available.
 2. If a private GitHub report is not available, email `csyqlz@gmail.com` with
-   the subject `[venlinks-pro security]`.
+   the subject `[venlinks security]`.
 3. If neither private channel is available, open a public issue that asks for a
    private contact channel and does not include technical exploit details.
 
@@ -35,7 +35,7 @@ Examples of in-scope reports:
 
 - Cross-site scripting or token exfiltration in the web app.
 - Exposure of locally stored API keys, account data, or synced canvas data
-  caused by VenLinks PRO code.
+  caused by VenLinks code.
 - Unsafe server file handling, import/export behavior, or media access control.
 - Authentication, authorization, or access-control flaws in project-managed
   features.

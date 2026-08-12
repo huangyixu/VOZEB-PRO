@@ -1,6 +1,6 @@
 ---
 title: 本地开发
-description: 使用 Node.js、pnpm 和 PostgreSQL 开发 VenLinks PRO
+description: 使用 Node.js、pnpm 和 PostgreSQL 开发 VenLinks
 ---
 
 # 本地开发
@@ -15,8 +15,8 @@ description: 使用 Node.js、pnpm 和 PostgreSQL 开发 VenLinks PRO
 ## 数据库
 
 ```sql
-CREATE USER venlinks_pro WITH PASSWORD 'password';
-CREATE DATABASE venlinks_pro OWNER venlinks_pro;
+CREATE USER venlinks WITH PASSWORD 'password';
+CREATE DATABASE venlinks OWNER venlinks;
 ```
 
 ## 环境变量
@@ -29,12 +29,12 @@ cp .env.example web/.env.local
 
 ```dotenv
 NEXT_PUBLIC_SITE_URL=http://localhost:3000
-VENLINKS_PRO_DATABASE_PROVIDER=postgres
-DATABASE_URL=postgres://venlinks_pro:password@localhost:5432/venlinks_pro
-VENLINKS_PRO_DATABASE_POOL_MAX=10
-VENLINKS_PRO_DATABASE_SSL=0
-VENLINKS_PRO_ENCRYPTION_KEY=填写 openssl rand -hex 32 的输出
-VENLINKS_PRO_INTERNAL_ORIGIN=http://127.0.0.1:3000
+VENLINKS_DATABASE_PROVIDER=postgres
+DATABASE_URL=postgres://venlinks:password@localhost:5432/venlinks
+VENLINKS_DATABASE_POOL_MAX=10
+VENLINKS_DATABASE_SSL=0
+VENLINKS_ENCRYPTION_KEY=填写 openssl rand -hex 32 的输出
+VENLINKS_INTERNAL_ORIGIN=http://127.0.0.1:3000
 ```
 
 ## 启动 Web
@@ -55,7 +55,7 @@ pnpm install --frozen-lockfile
 pnpm run dev
 ```
 
-独立文档站固定访问 `http://localhost:3001`。`http://localhost:3000` 只属于 `web/` 主应用；如果该地址显示“VenLinks PRO 文档中心”，说明启动了 `docs/` 子项目或旧版文档脚本，而不是主应用。
+独立文档站固定访问 `http://localhost:3001`。`http://localhost:3000` 只属于 `web/` 主应用；如果该地址显示“VenLinks 文档中心”，说明启动了 `docs/` 子项目或旧版文档脚本，而不是主应用。
 
 ## 常用检查
 

@@ -8,7 +8,7 @@ export type QueryExecutor = {
     query<T extends QueryResultRow = QueryResultRow>(text: string, values?: unknown[]): Promise<QueryResult<T>>;
 };
 
-const POSTGRES_TABLE_PREFIX = "venlinks_pro_";
+const POSTGRES_TABLE_PREFIX = "venlinks_";
 const POSTGRES_TABLES = [
     "schema_migrations",
     "app_settings",
@@ -232,9 +232,9 @@ const POSTGRES_SCHEMA_OBJECTS = [
 ] as const;
 
 const globalForPostgres = globalThis as typeof globalThis & {
-    __venLinksProPostgresPool?: Pool;
-    __venLinksProPostgresSchemaReady?: Promise<void>;
-    __venLinksProPostgresNotifications?: PostgresNotificationState;
+    __venLinksPostgresPool?: Pool;
+    __venLinksPostgresSchemaReady?: Promise<void>;
+    __venLinksPostgresNotifications?: PostgresNotificationState;
 };
 
 type PostgresNotificationListener = (payload: string) => void;
@@ -246,7 +246,7 @@ type PostgresNotificationState = {
 };
 
 export function getDatabaseProvider(): DatabaseProvider {
-    return process.env.VENLINKS_PRO_DATABASE_PROVIDER?.trim().toLowerCase() === "file" ? "file" : "postgres";
+    return process.env.VENLINKS_DATABASE_PROVIDER?.trim().toLowerCase() === "file" ? "file" : "postgres";
 }
 
 export function isPostgresDatabaseEnabled() {
@@ -259,17 +259,17 @@ export function getPostgresConnectionString() {
 
 function getPostgresPool() {
     const connectionString = getPostgresConnectionString();
-    if (!connectionString) throw new Error("DATABASE_URL is required when VENLINKS_PRO_DATABASE_PROVIDER=postgres");
+    if (!connectionString) throw new Error("DATABASE_URL is required when VENLINKS_DATABASE_PROVIDER=postgres");
 
-    if (!globalForPostgres.__venLinksProPostgresPool) {
-        globalForPostgres.__venLinksProPostgresPool = new Pool({
+    if (!globalForPostgres.__venLinksPostgresPool) {
+        globalForPostgres.__venLinksPostgresPool = new Pool({
             connectionString,
-            max: normalizePoolMax(process.env.VENLINKS_PRO_DATABASE_POOL_MAX),
-            ssl: parseBoolean(process.env.VENLINKS_PRO_DATABASE_SSL) ? { rejectUnauthorized: false } : undefined,
+            max: normalizePoolMax(process.env.VENLINKS_DATABASE_POOL_MAX),
+            ssl: parseBoolean(process.env.VENLINKS_DATABASE_SSL) ? { rejectUnauthorized: false } : undefined,
         });
     }
 
-    return globalForPostgres.__venLinksProPostgresPool;
+    return globalForPostgres.__venLinksPostgresPool;
 }
 
 export async function postgresQuery<T extends QueryResultRow = QueryResultRow>(text: string, values?: unknown[]) {
@@ -318,7 +318,7 @@ export async function withPostgresTransaction<T>(handler: (client: QueryExecutor
 
 export async function subscribePostgresNotification(channel: string, listener: PostgresNotificationListener) {
     const name = normalizeNotificationChannel(channel);
-    const state: PostgresNotificationState = globalForPostgres.__venLinksProPostgresNotifications ?? (globalForPostgres.__venLinksProPostgresNotifications = { listeners: new Map() });
+    const state: PostgresNotificationState = globalForPostgres.__venLinksPostgresNotifications ?? (globalForPostgres.__venLinksPostgresNotifications = { listeners: new Map() });
     const existing = state.listeners.get(name);
     const listeners = existing || new Set<PostgresNotificationListener>();
     listeners.add(listener);
@@ -337,7 +337,7 @@ async function ensurePostgresNotificationClient(state: PostgresNotificationState
     if (state.connecting) return state.connecting;
     const connectionString = getPostgresConnectionString();
     if (!connectionString) throw new Error("DATABASE_URL is required for PostgreSQL notifications");
-    const client = new Client({ connectionString, ssl: parseBoolean(process.env.VENLINKS_PRO_DATABASE_SSL) ? { rejectUnauthorized: false } : undefined });
+    const client = new Client({ connectionString, ssl: parseBoolean(process.env.VENLINKS_DATABASE_SSL) ? { rejectUnauthorized: false } : undefined });
     state.connecting = (async () => {
         await client.connect();
         client.on("notification", (message) => {
@@ -370,25 +370,25 @@ function normalizeNotificationChannel(value: string) {
 }
 
 export async function ensurePostgresSchema() {
-    if (globalForPostgres.__venLinksProPostgresSchemaReady) return globalForPostgres.__venLinksProPostgresSchemaReady;
+    if (globalForPostgres.__venLinksPostgresSchemaReady) return globalForPostgres.__venLinksPostgresSchemaReady;
 
-    const result = await getPostgresPool().query<{ table_name: string | null }>("SELECT to_regclass('public.venlinks_pro_users')::text AS table_name");
+    const result = await getPostgresPool().query<{ table_name: string | null }>("SELECT to_regclass('public.venlinks_users')::text AS table_name");
     if (!result.rows[0]?.table_name) throw new Error("PostgreSQL schema has not been initialized");
 
     return initializePostgresSchema();
 }
 
 export async function initializePostgresSchema() {
-    if (!globalForPostgres.__venLinksProPostgresSchemaReady) {
-        globalForPostgres.__venLinksProPostgresSchemaReady = getPostgresPool()
+    if (!globalForPostgres.__venLinksPostgresSchemaReady) {
+        globalForPostgres.__venLinksPostgresSchemaReady = getPostgresPool()
             .query(prefixPostgresSql(POSTGRESQL_SCHEMA_SQL))
             .then(() => undefined)
             .catch((error) => {
-                globalForPostgres.__venLinksProPostgresSchemaReady = undefined;
+                globalForPostgres.__venLinksPostgresSchemaReady = undefined;
                 throw error;
             });
     }
-    return globalForPostgres.__venLinksProPostgresSchemaReady;
+    return globalForPostgres.__venLinksPostgresSchemaReady;
 }
 
 function prefixPostgresSql(sql: string) {

@@ -36,8 +36,8 @@ export function ClientRootInit({ children }: { children: ReactNode }) {
         const handleMissingConfig = () => {
             message.warning("请联系管理员在后台配置可用模型渠道");
         };
-        window.addEventListener("venlinks-pro-system-config-missing", handleMissingConfig);
-        return () => window.removeEventListener("venlinks-pro-system-config-missing", handleMissingConfig);
+        window.addEventListener("venlinks-system-config-missing", handleMissingConfig);
+        return () => window.removeEventListener("venlinks-system-config-missing", handleMissingConfig);
     }, [message]);
 
     return (

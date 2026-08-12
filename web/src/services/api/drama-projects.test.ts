@@ -28,7 +28,7 @@ describe("drama project api", () => {
         const result = contentAnalysis();
         const fetchMock = vi
             .fn()
-            .mockResolvedValueOnce(taskResponse({ id: "analysis-one", status: "pending", phase: "content" }, { "x-venlinks-pro-points-remaining": "1990" }))
+            .mockResolvedValueOnce(taskResponse({ id: "analysis-one", status: "pending", phase: "content" }, { "x-venlinks-points-remaining": "1990" }))
             .mockResolvedValueOnce(taskResponse({ id: "analysis-one", status: "running", phase: "content" }))
             .mockResolvedValueOnce(taskResponse({ id: "analysis-one", status: "success", phase: "content", result }));
         vi.stubGlobal("fetch", fetchMock);

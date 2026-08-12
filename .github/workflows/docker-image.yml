@@ -4,7 +4,7 @@ run-name: 主应用多架构镜像 · ${{ github.ref_name }}
 on:
   push:
     branches: ["main"]
-    tags: ["v*", "VenLinks-PRO-v*"]
+    tags: ["v*", "VenLinks-v*"]
   workflow_dispatch:
 
 permissions:
@@ -12,7 +12,7 @@ permissions:
   packages: write
 
 env:
-  IMAGE_NAME: ghcr.io/csyqlz/venlinks-pro
+  IMAGE_NAME: ghcr.io/csyqlz/venlinks
 
 jobs:
   meta:

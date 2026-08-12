@@ -4,8 +4,8 @@ import { useCallback, useEffect, useState } from "react";
 
 import { mergeAnnouncementReadIds, parseAnnouncementReadIds } from "@/lib/announcement-notifications";
 
-const STORAGE_KEY = "venlinks-pro:announcement-read:v1";
-const CHANGE_EVENT = "venlinks-pro:announcement-read-change";
+const STORAGE_KEY = "venlinks:announcement-read:v1";
+const CHANGE_EVENT = "venlinks:announcement-read-change";
 
 export function useAnnouncementReadState() {
     const [readIds, setReadIds] = useState<Set<string>>(() => new Set());

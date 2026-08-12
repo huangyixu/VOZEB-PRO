@@ -471,8 +471,8 @@ export function CanvasAssistantPanel({
                     ) : (
                         <div className="flex h-full flex-col items-center justify-center px-1 text-center">
                             <div className="relative font-serif text-4xl font-bold italic tracking-normal" style={{ color: theme.node.text }}>
-                                <span>VenLinks PRO Canvas</span>
-                                <DiaTextReveal className="absolute inset-0" colors={["#A97CF8", "#F38CB8", "#FDCC92"]} textColor="transparent" duration={1.8} startOnView={false} text="VenLinks PRO Canvas" />
+                                <span>VenLinks Canvas</span>
+                                <DiaTextReveal className="absolute inset-0" colors={["#A97CF8", "#F38CB8", "#FDCC92"]} textColor="transparent" duration={1.8} startOnView={false} text="VenLinks Canvas" />
                             </div>
                             <div className="mt-3 font-serif text-base italic tracking-wide opacity-60">One canvas, many ideas</div>
                         </div>

@@ -33,7 +33,7 @@ vi.mock("@/lib/server/text-task-store", () => ({
 vi.mock("@/lib/server/generation-task-scheduler", () => ({ scheduleGenerationTask: mocks.schedule }));
 vi.mock("@/lib/server/generation-task-recovery-service", () => ({ runGenerationTaskRecoveryBatch: mocks.recover }));
 vi.mock("@/lib/server/internal-origin", () => ({ resolveInternalOrigin: vi.fn(() => "http://internal") }));
-vi.mock("@/lib/server/points-response", () => ({ pointsResponseHeaders: vi.fn(() => new Headers({ "x-venlinks-pro-points-remaining": "2000" })) }));
+vi.mock("@/lib/server/points-response", () => ({ pointsResponseHeaders: vi.fn(() => new Headers({ "x-venlinks-points-remaining": "2000" })) }));
 vi.mock("@/lib/server/logical-model-router", () => ({ resolveLogicalModelCandidates: mocks.resolveCandidates }));
 vi.mock("@/lib/server/text-planning-runtime", () => ({ rankTextPlanningCandidates: vi.fn((items) => items) }));
 vi.mock("@/lib/server/generation-channel", () => ({ toSystemGenerationChannel: mocks.toChannel }));

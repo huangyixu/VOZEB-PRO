@@ -237,6 +237,7 @@ export default function CreatePage() {
                         projectLinks={agent.projectLinks}
                         projectErrors={agent.projectErrors}
                         runDetails={agent.runDetails}
+                        runTraces={agent.runTraces}
                         materializingProjectId={agent.materializingProjectId}
                         onMaterializeProject={agent.materializeProject}
                         onRetryTask={(runId, taskId) => void agent.retryTask(runId, taskId).catch((error) => message.error(error instanceof Error ? error.message : "重试任务失败"))}

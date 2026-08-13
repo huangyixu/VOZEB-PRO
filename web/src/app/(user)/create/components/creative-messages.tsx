@@ -10,6 +10,7 @@ import { AgentMarkdown } from "@/components/agent/agent-markdown";
 import { AgentMessageActions } from "@/components/agent/agent-message-actions";
 import { formatAgentMessageText } from "@/components/agent/agent-message-format";
 import { AgentMediaPreview } from "@/components/agent/agent-media-preview";
+import { AgentExecutionTimeline } from "@/components/agent/agent-execution-timeline";
 import { SiteLogo } from "@/components/layout/site-logo";
 import { useCopyText } from "@/hooks/use-copy-text";
 import { isCreativeProjectHandoff, type CreativeAsset, type CreativeMessage, type CreativeProjectHandoff } from "@/lib/creative-runtime-contract";
@@ -19,6 +20,7 @@ import { cn } from "@/lib/utils";
 import { userAvatarFallback } from "@/lib/user-avatar";
 import type { MaterializedCreativeProject } from "@/services/creative-project-handoff";
 import type { CreativeAgentRun } from "@/services/api/creative";
+import { agentExecutionTraceFromRun, type AgentExecutionTrace } from "@/lib/agent-execution-trace";
 import { usePublicSessionStore } from "@/stores/use-public-session-store";
 
 import { creativeAssetCardLayout } from "./creative-asset-layout";
@@ -30,6 +32,7 @@ export function CreativeMessages({
     projectLinks,
     projectErrors,
     runDetails,
+    runTraces,
     materializingProjectId,
     onMaterializeProject,
     onRetryTask,
@@ -48,6 +51,7 @@ export function CreativeMessages({
     projectLinks: Record<string, MaterializedCreativeProject>;
     projectErrors: Record<string, string>;
     runDetails: Record<string, CreativeAgentRun>;
+    runTraces?: Record<string, AgentExecutionTrace>;
     materializingProjectId?: string;
     onMaterializeProject: (handoff: CreativeProjectHandoff) => Promise<MaterializedCreativeProject>;
     onRetryTask: (runId: string, taskId: string) => void;
@@ -98,6 +102,7 @@ export function CreativeMessages({
                 const displayContent = formatAgentMessageText(item.content);
                 const downloads = agentAssetDownloads(itemAssets);
                 const run = item.runId ? runDetails[item.runId] : undefined;
+                const trace = item.runId ? runTraces?.[item.runId] || (run ? agentExecutionTraceFromRun(run) : undefined) : undefined;
                 const failedTasks = run?.tasks.filter((task) => task.status === "failed") || [];
                 return (
                     <article key={item.id} className={cn("group/message flex items-start gap-3", item.role === "user" ? "justify-end" : "justify-start")}>
@@ -112,6 +117,7 @@ export function CreativeMessages({
                                 {item.role === "assistant" && item.status === "running" ? <LoaderCircle className="mr-2 inline size-4 animate-spin text-stone-400" /> : null}
                                 {item.role === "assistant" && item.status === "completed" ? <AgentMarkdown>{displayContent}</AgentMarkdown> : <span className="whitespace-pre-wrap">{displayContent}</span>}
                             </div>
+                            {item.role === "assistant" && trace ? <AgentExecutionTimeline trace={trace} /> : null}
                             {item.role !== "user" && itemAssets.length ? <CreativeAssetGrid assets={itemAssets} messageText={displayContent} selectedAssetIds={selectedAssetIds} onToggleAsset={onToggleAsset} /> : null}
                             {handoff ? (
                                 <ProjectHandoffAction

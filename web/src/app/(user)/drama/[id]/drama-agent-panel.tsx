@@ -14,6 +14,7 @@ import { AgentMessageActions } from "@/components/agent/agent-message-actions";
 import { AgentMarkdown } from "@/components/agent/agent-markdown";
 import { formatAgentMessageText, friendlyAgentError } from "@/components/agent/agent-message-format";
 import { AgentMediaPreview } from "@/components/agent/agent-media-preview";
+import { AgentExecutionTimeline } from "@/components/agent/agent-execution-timeline";
 import { clipboardImageFiles } from "@/lib/clipboard-image-files";
 import type { CreativeAsset, CreativeMessage } from "@/lib/creative-runtime-contract";
 import { CREATIVE_UPLOAD_MAX_BYTES, isCreativeUploadMimeType } from "@/lib/creative-upload";
@@ -24,6 +25,7 @@ import { controlCreativeAgentRun, createCreativeAgentRun, createCreativeConversa
 import { usePublicSessionStore } from "@/stores/use-public-session-store";
 import { useDramaStore } from "../stores/use-drama-store";
 import { agentRequirementAcknowledgement } from "@/lib/agent-requirement-acknowledgement";
+import type { AgentExecutionTrace } from "@/lib/agent-execution-trace";
 
 type PendingDramaSubmission = {
     clientRequestId: string;
@@ -69,6 +71,7 @@ function DramaAgentContent({ project, episode, onConversationChange }: { project
     const [sending, setSending] = useState(false);
     const [uploading, setUploading] = useState(false);
     const [runId, setRunId] = useState<string>();
+    const [runTraces, setRunTraces] = useState<Record<string, AgentExecutionTrace>>({});
     const streamRef = useRef<(() => void) | null>(null);
     const submittingRef = useRef(false);
     const failedSubmissionsRef = useRef(new Map<string, PendingDramaSubmission>());
@@ -167,7 +170,8 @@ function DramaAgentContent({ project, episode, onConversationChange }: { project
             await refresh(result.run.conversationId);
             streamRef.current?.();
             streamRef.current = watchCreativeAgentRun(result.run.id, {
-                onProgress: () => void refresh(),
+                onProgress: () => undefined,
+                onTrace: (trace) => setRunTraces((current) => ({ ...current, [result.run.id]: trace })),
                 onTaskCompleted: () => void refresh(),
                 onStatus: () => undefined,
                 onProjectHandoff: () => undefined,
@@ -291,6 +295,7 @@ function DramaAgentContent({ project, episode, onConversationChange }: { project
                                 {message.status === "running" ? <LoaderCircle className="mr-1 inline size-3.5 animate-spin" /> : null}
                                 {message.role === "assistant" && message.status === "completed" ? <AgentMarkdown>{displayContent}</AgentMarkdown> : <span className="whitespace-pre-wrap">{displayContent}</span>}
                             </div>
+                            {message.role === "assistant" && message.runId && runTraces[message.runId] ? <AgentExecutionTimeline trace={runTraces[message.runId]} compact /> : null}
                             {messageAssets.length ? <DramaAgentAssets assets={messageAssets} project={project} episode={episode} /> : null}
                             {message.role === "assistant" && message.status === "failed" && !message.runId ? (
                                 <Button

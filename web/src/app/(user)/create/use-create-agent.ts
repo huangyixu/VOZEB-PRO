@@ -23,6 +23,7 @@ import {
 import { getMaterializedCreativeProject, materializeCreativeProjectHandoff, type MaterializedCreativeProject } from "@/services/creative-project-handoff";
 import { agentRequirementAcknowledgement } from "@/lib/agent-requirement-acknowledgement";
 import { isGenerationCapacityError } from "@/services/api/generation-task-request-error";
+import type { AgentExecutionTrace } from "@/lib/agent-execution-trace";
 
 type PendingCreateSubmission = {
     clientRequestId: string;
@@ -53,6 +54,7 @@ export function useCreateAgent() {
     const [activeRunId, setActiveRunId] = useState<string>();
     const [activeRunStatus, setActiveRunStatus] = useState<CreativeAgentRun["status"]>();
     const [runDetails, setRunDetails] = useState<Record<string, CreativeAgentRun>>({});
+    const [runTraces, setRunTraces] = useState<Record<string, AgentExecutionTrace>>({});
     const [historyLoading, setHistoryLoading] = useState(true);
     const [historyLoadingMore, setHistoryLoadingMore] = useState(false);
     const [historyHasMore, setHistoryHasMore] = useState(false);
@@ -277,8 +279,9 @@ export function useCreateAgent() {
             setActiveRunId(run.id);
             setActiveRunStatus(run.status);
             streamRef.current = watchCreativeAgentRun(run.id, {
-                onProgress: (text) => {
-                    if (generation === conversationGenerationRef.current && activeConversationRef.current === run.conversationId) updateAssistant(assistantMessageId, text);
+                onProgress: () => undefined,
+                onTrace: (trace) => {
+                    if (generation === conversationGenerationRef.current && activeConversationRef.current === run.conversationId) setRunTraces((current) => ({ ...current, [run.id]: trace }));
                 },
                 onStatus: (status) => {
                     if (generation === conversationGenerationRef.current && activeConversationRef.current === run.conversationId) setActiveRunStatus(status);
@@ -514,6 +517,7 @@ export function useCreateAgent() {
         activeRunId,
         activeRunStatus,
         runDetails,
+        runTraces,
         historyLoading,
         historyLoadingMore,
         historyHasMore,

@@ -22,16 +22,14 @@ describe("workbench Agent conversation", () => {
         expect(source).not.toContain('className="w-[340px] max-w-full"');
     });
 
-    it("shows only the current Agent progress step", async () => {
+    it("shows the verifiable Agent progress timeline", async () => {
         const source = await readFile(resolve(process.cwd(), "src/components/agent/workbench-agent-panel.tsx"), "utf8");
         const progressSource = source.slice(source.indexOf("function WorkbenchAgentProgressMessage"), source.indexOf("function WorkbenchAgentResponseMessage"));
 
-        expect(progressSource).toContain('progress.phase === "planning" ? "思考中"');
+        expect(progressSource).toContain('progress.phase === "planning" ? "正在理解并规划"');
         expect(progressSource).toContain('progress.phase === "submitting" ? "正在创建生成任务"');
-        expect(progressSource).not.toContain("workbenchAgentProgressHeading");
-        expect(progressSource).not.toContain("workbenchAgentProgressSteps");
-        expect(progressSource).not.toContain("{message.text}</p>");
-        expect(progressSource).not.toContain("steps.map((step)");
+        expect(progressSource).toContain("workbenchAgentProgressSteps");
+        expect(progressSource).toContain("<AgentExecutionTimeline");
     });
 
     it("keeps image and video workbenches on the same conversation and placeholder components", async () => {

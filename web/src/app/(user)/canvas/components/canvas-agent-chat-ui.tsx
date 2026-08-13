@@ -2,11 +2,12 @@
 
 import { useRef, useState, type DragEvent as ReactDragEvent, type ReactNode } from "react";
 import { Button, Tooltip } from "antd";
-import { ArrowUp, Check, CheckCircle2, Circle, CircleAlert, Crosshair, ImagePlus, LoaderCircle, Pause, RotateCcw, Wrench, X, XCircle } from "lucide-react";
+import { ArrowUp, CheckCircle2, CircleAlert, Crosshair, ImagePlus, LoaderCircle, RotateCcw, Wrench, X, XCircle } from "lucide-react";
 
 import { AgentMessageActions } from "@/components/agent/agent-message-actions";
 import { AgentMarkdown } from "@/components/agent/agent-markdown";
 import { AgentMediaPreview } from "@/components/agent/agent-media-preview";
+import { AgentExecutionTimeline } from "@/components/agent/agent-execution-timeline";
 import { SiteLogo } from "@/components/layout/site-logo";
 import { canvasThemes } from "@/lib/canvas-theme";
 import { clipboardImageFiles } from "@/lib/clipboard-image-files";
@@ -15,7 +16,8 @@ import { imagePreviewUrl } from "@/lib/media-image-url";
 import { userAvatarFallback } from "@/lib/user-avatar";
 import { usePublicSessionStore } from "@/stores/use-public-session-store";
 import type { LocalUser } from "@/stores/use-user-store";
-import { canvasAgentProgressSteps, type CanvasAgentRunStage } from "./canvas-agent-progress";
+import type { CanvasAgentRunStage } from "./canvas-agent-progress";
+import type { AgentExecutionTrace } from "@/lib/agent-execution-trace";
 
 export type CanvasAgentChatAttachment = {
     id: string;
@@ -216,24 +218,30 @@ function AgentToolCard({ title, text, detail, theme }: { title: string; text: st
 }
 
 export function AgentWorkingMessage({ theme, stage }: { theme: (typeof canvasThemes)[keyof typeof canvasThemes]; stage: CanvasAgentRunStage }) {
-    const steps = canvasAgentProgressSteps(stage);
+    const visibleStage = stage.key === "reconnecting" ? stage.resumeKey || "planning" : stage.key;
+    const trace: AgentExecutionTrace = {
+        runId: "canvas-active-run",
+        status: visibleStage === "paused" ? "paused" : "running",
+        phase:
+            visibleStage === "planning"
+                ? "planning"
+                : visibleStage === "skills"
+                  ? "skills"
+                  : visibleStage === "plan"
+                    ? "plan"
+                    : visibleStage === "executing" || visibleStage === "paused"
+                      ? "executing"
+                      : visibleStage === "reviewing"
+                        ? "reviewing"
+                        : "delivering",
+        summary: stage.text,
+        tasks: [],
+        ...(stage.key === "reconnecting" ? { connectionAttempt: 1 } : {}),
+    };
     return (
         <div className="flex items-start gap-3" aria-live="polite">
             <AgentAvatar theme={theme} />
-            <div className="min-w-0 w-[340px] max-w-[86%] rounded-xl border p-4" style={{ borderColor: theme.node.stroke, color: theme.node.text }}>
-                <div className="text-sm font-semibold">{stage.text}</div>
-                <div className="mt-3 space-y-2">
-                    {steps.map((step) => (
-                        <div key={step.key} className="flex items-center gap-2 text-xs" style={{ color: step.status === "pending" ? theme.node.muted : theme.node.text, opacity: step.status === "pending" ? 0.58 : 1 }}>
-                            {step.status === "completed" ? <Check className="size-3.5 shrink-0 text-emerald-500" /> : null}
-                            {step.status === "running" ? <LoaderCircle className="size-3.5 shrink-0 animate-spin text-sky-500" /> : null}
-                            {step.status === "paused" ? <Pause className="size-3.5 shrink-0 text-amber-500" /> : null}
-                            {step.status === "pending" ? <Circle className="size-3.5 shrink-0" /> : null}
-                            <span>{step.label}</span>
-                        </div>
-                    ))}
-                </div>
-            </div>
+            <AgentExecutionTimeline trace={trace} className="!mt-0 min-w-0 w-[420px] max-w-[86%]" />
         </div>
     );
 }

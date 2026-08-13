@@ -2,6 +2,7 @@ import { isCreativeProjectHandoff, type CreativeAsset, type CreativeConversation
 import { GenerationTaskRequestError } from "@/services/api/generation-task-request-error";
 import type { CreativeWorkbenchSessionDetail, CreativeWorkbenchSessionSummary, WorkbenchWorkspace } from "@/lib/workbench-session-contract";
 import { refreshUserPointsIfSystem } from "@/services/api/points";
+import { agentExecutionTraceFromRun, applyAgentExecutionEvent, markAgentTraceReconnecting, type AgentExecutionTrace, type AgentRunTaskSnapshot, type AgentRunTimingSnapshot } from "@/lib/agent-execution-trace";
 
 export type CreativeAgentRun = {
     id: string;
@@ -10,7 +11,8 @@ export type CreativeAgentRun = {
     assistantMessageId: string;
     status: "planning" | "running" | "paused" | "completed" | "failed" | "cancelled";
     assetIds: string[];
-    tasks: Array<{ id: string; title: string; status: "ready" | "running" | "completed" | "failed"; error?: string }>;
+    tasks: AgentRunTaskSnapshot[];
+    timings?: AgentRunTimingSnapshot;
 };
 
 type ApiResponse<T> = { code: number; data: T; msg: string };
@@ -99,6 +101,7 @@ type CreativeRunHandlers = {
     onProjectHandoff?: (handoff: CreativeProjectHandoff) => void;
     onStatus?: (status: CreativeAgentRun["status"]) => void;
     onTaskCompleted?: (progress?: CreativeTaskProgress) => void;
+    onTrace?: (trace: AgentExecutionTrace) => void;
 };
 
 export type CreativeTaskProgress = {
@@ -113,10 +116,12 @@ export function watchCreativeAgentRun(runId: string, handlers: CreativeRunHandle
     const source = new EventSource(`/api/agent/runs/${encodeURIComponent(runId)}/events`);
     let settled = false;
     let connectionErrors = 0;
+    let trace = agentExecutionTraceFromRun({ id: runId, status: "planning", tasks: [], timings: { requestAcceptedAt: Date.now() } });
+    handlers.onTrace?.(trace);
     const read = (event: Event) => {
-        let parsed: { data?: Record<string, unknown>; status?: string };
+        let parsed: { data?: Record<string, unknown>; status?: string; tasks?: AgentRunTaskSnapshot[]; timings?: AgentRunTimingSnapshot };
         try {
-            parsed = JSON.parse((event as MessageEvent<string>).data) as { data?: Record<string, unknown>; status?: string };
+            parsed = JSON.parse((event as MessageEvent<string>).data) as typeof parsed;
         } catch {
             return null;
         }
@@ -129,10 +134,14 @@ export function watchCreativeAgentRun(runId: string, handlers: CreativeRunHandle
         void refreshUserPointsIfSystem("system");
         handlers.onTerminal(status, text);
     };
-    const listen = (type: string, callback: (payload: { data?: Record<string, unknown>; status?: string }) => void) =>
+    const listen = (type: string, callback: (payload: { data?: Record<string, unknown>; status?: string; tasks?: AgentRunTaskSnapshot[]; timings?: AgentRunTimingSnapshot }) => void) =>
         source.addEventListener(type, (event) => {
             const payload = read(event);
-            if (payload) callback(payload);
+            if (payload) {
+                trace = applyAgentExecutionEvent(trace, type, payload);
+                handlers.onTrace?.(trace);
+                callback(payload);
+            }
         });
 
     listen("run.planning", () => handlers.onProgress("正在理解需求并选择合适的创作能力"));
@@ -142,6 +151,7 @@ export function watchCreativeAgentRun(runId: string, handlers: CreativeRunHandle
         handlers.onProgress(text(data?.reply) || "方案已确定，正在创建任务");
     });
     listen("task.running", ({ data }) => handlers.onProgress(`正在处理「${text(data?.title) || "创作任务"}」`));
+    listen("task.created", () => undefined);
     listen("task.child.completed", ({ data }) => {
         void refreshUserPointsIfSystem("system");
         const progress = taskProgress(data);
@@ -154,6 +164,7 @@ export function watchCreativeAgentRun(runId: string, handlers: CreativeRunHandle
         handlers.onProgress(text(data?.message) || `「${text(data?.title) || "创作任务"}」已完成`);
         handlers.onTaskCompleted?.();
     });
+    listen("task.failed", ({ data }) => handlers.onProgress(`「${text(data?.title) || "创作任务"}」执行失败`));
     listen("project.handoff", ({ data }) => {
         if (isCreativeProjectHandoff(data?.projectHandoff || data)) handlers.onProjectHandoff?.((data?.projectHandoff || data) as CreativeProjectHandoff);
     });
@@ -166,6 +177,8 @@ export function watchCreativeAgentRun(runId: string, handlers: CreativeRunHandle
         void refreshUserPointsIfSystem("system");
         handlers.onProgress("正在整理已完成的创作结果");
     });
+    listen("run.paused", () => handlers.onStatus?.("paused"));
+    listen("run.resumed", () => handlers.onStatus?.("running"));
     listen("run.completed", ({ data }) => finish("completed", text(data?.reply)));
     listen("run.failed", ({ data }) => finish("failed", text(data?.message) || "Agent 执行失败"));
     listen("run.cancelled", () => finish("cancelled", "任务已取消"));
@@ -187,6 +200,8 @@ export function watchCreativeAgentRun(runId: string, handlers: CreativeRunHandle
             source.close();
             handlers.onConnectionError("事件连接多次重试后仍无法恢复");
         } else {
+            trace = markAgentTraceReconnecting(trace, connectionErrors);
+            handlers.onTrace?.(trace);
             handlers.onProgress(`连接暂时中断，正在进行第 ${connectionErrors} 次恢复`);
         }
     };

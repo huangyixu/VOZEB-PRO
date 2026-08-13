@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
-import { Bot, BookOpen, Check, CircleStop, FileAudio2, Film, History, LoaderCircle, Plus, RotateCcw, Search, SlidersHorizontal, XCircle } from "lucide-react";
+import { Bot, BookOpen, FileAudio2, Film, History, LoaderCircle, Plus, RotateCcw, Search, SlidersHorizontal } from "lucide-react";
 import { Button, Input, Popover, Tooltip } from "antd";
 
 import { AgentMessageActions } from "@/components/agent/agent-message-actions";
 import { AgentMarkdown } from "@/components/agent/agent-markdown";
+import { AgentExecutionTimeline } from "@/components/agent/agent-execution-timeline";
 import { formatAgentMessageText } from "@/components/agent/agent-message-format";
 import { CreativeAgentControls, CreativeAgentSkillCard, type CreativeAgentModelOption } from "@/components/agent/creative-agent-controls";
 import type { AgentSkillSummary } from "@/services/api/agent-skills";
@@ -13,7 +14,8 @@ import { imageReferenceLabel } from "@/lib/image-reference-prompt";
 import { imagePreviewUrl } from "@/lib/media-image-url";
 import { cn } from "@/lib/utils";
 import type { WorkbenchAgentAttachment } from "@/lib/workbench-agent-attachment";
-import type { WorkbenchAgentChoice, WorkbenchAgentMessage } from "./workbench-agent-progress";
+import { workbenchAgentProgressSteps, type WorkbenchAgentChoice, type WorkbenchAgentMessage } from "./workbench-agent-progress";
+import type { AgentExecutionTrace } from "@/lib/agent-execution-trace";
 
 export type { WorkbenchAgentMessage, WorkbenchAgentSession } from "./workbench-agent-progress";
 export type WorkbenchSkillOption = AgentSkillSummary;
@@ -181,16 +183,18 @@ function WorkbenchMessageAttachments({ attachments }: { attachments: WorkbenchAg
 
 function WorkbenchAgentProgressMessage({ message, onRetry }: { message: WorkbenchAgentMessage; onRetry?: () => void }) {
     const progress = message.progress!;
-    const label = progress.phase === "planning" ? "思考中" : progress.phase === "submitting" ? "正在创建生成任务" : progress.phase === "failed" ? message.text || "处理失败" : progress.phase === "cancelled" ? message.text || "已取消" : "已完成";
+    const steps = workbenchAgentProgressSteps(progress);
+    const active = steps.findIndex((step) => step.status === "running" || step.status === "failed" || step.status === "cancelled");
+    const trace: AgentExecutionTrace = {
+        runId: message.id,
+        status: progress.phase === "completed" ? "completed" : progress.phase === "failed" ? "failed" : progress.phase === "cancelled" ? "cancelled" : "running",
+        phase: progress.phase === "planning" ? "planning" : progress.phase === "submitting" ? "executing" : "delivering",
+        summary: progress.phase === "planning" ? "正在理解并规划" : progress.phase === "submitting" ? "正在创建生成任务" : progress.phase === "failed" ? message.text || "处理失败" : progress.phase === "cancelled" ? message.text || "已取消" : "已完成",
+        tasks: steps.slice(0, active < 0 ? steps.length : active + 1).map((step) => ({ id: step.key, title: step.label, status: step.status === "cancelled" ? "cancelled" : step.status })),
+    };
     return (
         <div className="flex flex-col items-start gap-1 text-sm text-current">
-            <div className="flex items-start gap-2">
-                {progress.phase === "planning" || progress.phase === "submitting" ? <LoaderCircle className="mt-1 size-3.5 shrink-0 animate-spin text-stone-500 dark:text-stone-400" /> : null}
-                {progress.phase === "completed" ? <Check className="mt-1 size-3.5 shrink-0 text-emerald-600 dark:text-emerald-400" /> : null}
-                {progress.phase === "failed" ? <XCircle className="mt-1 size-3.5 shrink-0 text-red-600 dark:text-red-300" /> : null}
-                {progress.phase === "cancelled" ? <CircleStop className="mt-1 size-3.5 shrink-0 text-amber-600 dark:text-amber-300" /> : null}
-                <span>{label}</span>
-            </div>
+            <AgentExecutionTimeline trace={trace} compact className="!mt-0 w-full" />
             {progress.phase === "failed" && onRetry ? (
                 <Button type="text" size="small" className="!h-7 !px-1.5" icon={<RotateCcw className="size-3.5" />} onClick={onRetry}>
                     重试
